@@ -6,9 +6,10 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BitacoraController;
 use App\Http\Controllers\ProgramaController;
+use App\Http\Controllers\TipoApoyoController;
+use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\DependenciaController;
 use App\Http\Controllers\ComiteVigilanciaController;
-use App\Http\Controllers\UbicacionController;
 
 // Rutas públicas
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -63,6 +64,18 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/comites/{comite}', [ComiteVigilanciaController::class, 'destroy'])->name('comites.destroy');
     Route::post('/comites/{comite}/elementos', [ComiteVigilanciaController::class, 'addElemento'])->name('comites.add-elemento');
     Route::delete('/elementos/{elemento}', [ComiteVigilanciaController::class, 'removeElemento'])->name('comites.remove-elemento');
+
+    // Tipos de Apoyo (dentro del middleware auth)
+    Route::prefix('tipos-apoyo')->name('tipos-apoyo.')->group(function () {
+        Route::get('/', [TipoApoyoController::class, 'index'])->name('index');
+        Route::get('/create', [TipoApoyoController::class, 'create'])->name('create');
+        Route::post('/', [TipoApoyoController::class, 'store'])->name('store');
+        Route::get('/{tipoApoyo}', [TipoApoyoController::class, 'show'])->name('show');
+        Route::get('/{tipoApoyo}/edit', [TipoApoyoController::class, 'edit'])->name('edit');
+        Route::put('/{tipoApoyo}', [TipoApoyoController::class, 'update'])->name('update');
+        Route::put('/{tipoApoyo}/toggle-status', [TipoApoyoController::class, 'toggleStatus'])->name('toggle-status');
+        Route::delete('/{tipoApoyo}', [TipoApoyoController::class, 'destroy'])->name('destroy');
+    });
 
     // Rutas para selects dependientes
     Route::get('/api/estados', [UbicacionController::class, 'getEstados'])->name('api.estados');

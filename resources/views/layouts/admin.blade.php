@@ -9,6 +9,9 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         :root {
             --color-tinto: #7c0a02;
@@ -137,6 +140,12 @@
                             class="list-group-item list-group-item-action {{ Request::is('comites*') ? 'active' : '' }}">Comités
                             de Vigilancia</a>
                         @endcan
+                        <!-- Nuevo menú para Tipos de Apoyo -->
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        <a href="{{ route('tipos-apoyo.index') }}"
+                            class="list-group-item list-group-item-action {{ Request::is('tipos-apoyo*') ? 'active' : '' }}">Tipos
+                            de Apoyo</a>
+                        @endif
                         @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
                         <a href="{{ route('bitacora.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('bitacora*') ? 'active' : '' }}">Bitácora</a>
@@ -180,6 +189,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
 
     @yield('scripts')
 </body>

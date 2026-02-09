@@ -183,17 +183,56 @@ class ProgramaController extends Controller
             abort(403, 'No autorizado para eliminar este programa.');
         }
 
-        // Eliminar todos los archivos relacionados
-        $archivos = ['archivo_pdf', 'reglas_operacion_pdf', 'guia_operativa_pdf'];
+        try {
+            // Verificar si el programa tiene comités de vigilancia asociados
+            if ($programa->comitesVigilancia()->count() > 0) {
+                $cantidadComites = $programa->comitesVigilancia()->count();
+                $comitesList = $programa->comitesVigilancia->pluck('nombre')->implode(', ');
 
-        foreach ($archivos as $archivo) {
-            if ($programa->$archivo) {
-                Storage::disk('public')->delete($programa->$archivo);
+                return redirect()->route('programas.index')
+                    ->with('error', 'No se puede eliminar el programa "' . $programa->nombre . '" porque tiene ' .
+                        $cantidadComites . ' comité(s) de vigilancia asociado(s): ' . $comitesList);
             }
-        }
-        $programa->delete();
 
-        return redirect()->route('programas.index')->with('success', 'Programa eliminado exitosamente.');
+            // Verificar si el programa tiene informes asociados
+            if ($programa->informes()->count() > 0) {
+                $cantidadInformes = $programa->informes()->count();
+
+                return redirect()->route('programas.index')
+                    ->with('error', 'No se puede eliminar el programa "' . $programa->nombre . '" porque tiene ' .
+                        $cantidadInformes . ' informe(s) asociado(s).');
+            }
+
+            // Si pasa todas las validaciones, proceder con la eliminación
+            $programaNombre = $programa->nombre;
+
+            // Eliminar todos los archivos relacionados
+            $archivos = ['archivo_pdf', 'reglas_operacion_pdf', 'guia_operativa_pdf'];
+
+            foreach ($archivos as $archivo) {
+                if ($programa->$archivo) {
+                    Storage::disk('public')->delete($programa->$archivo);
+                }
+            }
+
+            $programa->delete();
+
+            return redirect()->route('programas.index')
+                ->with('success', 'Programa ' . $programaNombre . ' eliminado exitosamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Como respaldo, capturar cualquier error de base de datos
+            if ($e->getCode() == 23000) {
+                return redirect()->route('programas.index')
+                    ->with('error', 'No se puede eliminar el programa ' . $programa->nombre .
+                        ' porque tiene elementos asociados (comités de vigilancia, informes, etc.).');
+            }
+
+            return redirect()->route('programas.index')
+                ->with('error', 'Error de base de datos: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            return redirect()->route('programas.index')
+                ->with('error', 'Error inesperado: ' . $e->getMessage());
+        }
     }
 
     public function uploadBeneficiarios(Request $request, Programa $programa)

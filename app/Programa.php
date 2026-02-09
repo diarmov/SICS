@@ -86,6 +86,8 @@ class Programa extends Model
         return $this->nombre . " (" . $this->dependencia->siglas . " - " . $this->periodo . ")";
     }
 
+
+
     protected static function boot()
     {
         parent::boot();

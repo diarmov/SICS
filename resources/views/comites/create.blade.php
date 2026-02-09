@@ -100,12 +100,12 @@
                             </div>
                         </div>
 
-                        <!-- NUEVA SECCIÓN: Archivo de Minuta -->
-                        <h5 class="mt-4 text-tinto">Minuta del Comité</h5>
+                        <h5 class="mt-4 text-tinto">Minuta o Acta constitutiva del Comité</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="archivo_minuta" class="form-label">Archivo de Minuta (PDF)</label>
+                                    <label for="archivo_minuta" class="form-label">Archivo de Minuta o Acta
+                                        constitutiva(PDF)</label>
                                     <input type="file" class="form-control" id="archivo_minuta" name="archivo_minuta"
                                         accept=".pdf">
                                     <small class="text-muted">Suba el archivo PDF de la minuta de constitución del
