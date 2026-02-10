@@ -55,7 +55,7 @@
                                     <th>Beneficiarios</th>
                                     <th>Monto Vigilado</th>
                                     <th>Informes</th>
-                                    <th>Comités</th>
+                                    {{-- <th>Comités</th> --}}
                                     <th>Inicio</th>
                                     <th>Término</th>
                                     <th>Estado</th>
@@ -77,7 +77,7 @@
                                             {{ $programa->informes->count() }}/{{ $programa->numero_informes }}
                                         </span>
                                     </td>
-                                    <td>
+                                    {{-- <td>
                                         @if($programa->comitesVigilancia->count() > 0)
                                         <span class="badge bg-warning"
                                             title="{{ $programa->comitesVigilancia->count() }} comité(s) de vigilancia">
@@ -86,7 +86,7 @@
                                         @else
                                         <span class="badge bg-secondary">Sin comités</span>
                                         @endif
-                                    </td>
+                                    </td> --}}
                                     <td>{{ \Carbon\Carbon::parse($programa->fecha_inicio)->format('d/m/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($programa->fecha_termino)->format('d/m/Y') }}</td>
                                     <td>

@@ -117,6 +117,60 @@
                             </div>
                         </div>
 
+                        <h5 class="mt-4 text-tinto">Lista de Asistencia</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="lista_asistencia" class="form-label">Archivo de Lista de
+                                        Asistencia</label>
+                                    <input type="file" class="form-control" id="lista_asistencia"
+                                        name="lista_asistencia" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                                    <small class="text-muted">Suba el archivo de lista de asistencia (PDF, Word o Excel,
+                                        máx. 5MB)</small>
+                                    @error('lista_asistencia')
+                                    <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 text-tinto">Material de Difusión</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="material_difusion" class="form-label">Archivos de Material de
+                                        Difusión</label>
+                                    <input type="file" class="form-control" id="material_difusion"
+                                        name="material_difusion[]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        multiple>
+                                    <small class="text-muted">Puede seleccionar múltiples archivos (PDF, Word, Excel,
+                                        JPG o PNG, máx. 5MB cada uno)</small>
+                                    @error('material_difusion.*')
+                                    <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 text-tinto">Fotografías de la Reunión</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fotografias" class="form-label">Fotografías de la Reunión</label>
+                                    <input type="file" class="form-control" id="fotografias" name="fotografias[]"
+                                        accept=".jpg,.jpeg" multiple>
+                                    <small class="text-muted">Puede seleccionar múltiples fotografías (solo JPG, máx.
+                                        2MB cada una)</small>
+                                    @error('fotografias.*')
+                                    <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vista previa para archivos múltiples -->
+                        <div id="preview-container" class="mt-3"></div>
+
                         <h5 class="mt-4 text-tinto">Elementos del Comité</h5>
 
                         <div id="elementos-container">
@@ -309,5 +363,49 @@
             }
         });
     });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const materialDifusionInput = document.getElementById('material_difusion');
+    const fotografiasInput = document.getElementById('fotografias');
+    const previewContainer = document.getElementById('preview-container');
+
+    function showPreview(input, container) {
+        container.innerHTML = '';
+
+        if (input.files.length > 0) {
+            const previewTitle = document.createElement('h6');
+            previewTitle.textContent = 'Archivos seleccionados:';
+            container.appendChild(previewTitle);
+
+            const fileList = document.createElement('ul');
+            fileList.className = 'list-group mt-2';
+
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                listItem.textContent = `${i + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+
+                // Mostrar tipo de archivo
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-info';
+                badge.textContent = file.type.split('/')[1].toUpperCase();
+                listItem.appendChild(badge);
+
+                fileList.appendChild(listItem);
+            }
+
+            container.appendChild(fileList);
+        }
+    }
+
+    materialDifusionInput.addEventListener('change', function() {
+        showPreview(this, previewContainer);
+    });
+
+    fotografiasInput.addEventListener('change', function() {
+        showPreview(this, previewContainer);
+    });
+});
 </script>
 @endsection

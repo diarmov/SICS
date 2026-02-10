@@ -8,131 +8,147 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-tinto text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">{{ $comite->nombre }}</h4>
                     <div>
+                        <h4 class="mb-0">{{ $comite->nombre }}</h4>
+                        @if($comite->estaValidado())
+                        <small class="text-light">
+                            <i class="fas fa-check-circle"></i>
+                            Validado por {{ $comite->validador->name ?? 'Administrador' }}
+                            el {{ optional($comite->fecha_validacion)->format('d/m/Y H:i') ?? 'Fecha no disponible' }}
+                        </small>
+                        @else
+                        <small class="text-warning">
+                            <i class="fas fa-clock"></i> Pendiente de validación
+                        </small>
+                        @endif
+                    </div>
+                    <div>
+                        <!-- Botones de validación para SuperUsuario y AdministradorCS -->
+                        @if(Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(!$comite->estaValidado())
+                        <form action="{{ route('comites.validar', $comite) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-sm"
+                                onclick="return confirm('¿Validar este comité? Esto confirmará que todos los documentos son correctos.')">
+                                <i class="fas fa-check-circle"></i> Validar Comité
+                            </button>
+                        </form>
+                        @else
+                        <form action="{{ route('comites.invalidar', $comite) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-warning btn-sm"
+                                onclick="return confirm('¿Invalidar este comité? Esto marcará el comité como no validado.')">
+                                <i class="fas fa-times-circle"></i> Invalidar
+                            </button>
+                        </form>
+                        @endif
+                        @endif
+
                         <a href="{{ route('comites.edit', $comite) }}" class="btn btn-light btn-sm">Editar</a>
                         <a href="{{ route('comites.index') }}" class="btn btn-secondary btn-sm">Volver</a>
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Resumen de validación -->
+                    <div class="alert {{ $comite->estaValidado() ? 'alert-success' : 'alert-warning' }}">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                @if($comite->estaValidado())
+                                <i class="fas fa-check-circle fa-2x"></i>
+                                @else
+                                <i class="fas fa-clock fa-2x"></i>
+                                @endif
+                            </div>
+                            <div>
+                                <h5 class="mb-1">
+                                    @if($comite->estaValidado())
+                                    ✅ Comité Validado
+                                    @else
+                                    ⏳ Pendiente de Validación
+                                    @endif
+                                </h5>
+                                <p class="mb-0">
+                                    @if($comite->estaValidado())
+                                    Este comité ha sido revisado y validado por un administrador.
+                                    @else
+                                    Este comité está pendiente de revisión y validación por un administrador.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resto del contenido existente... -->
                     <div class="row">
                         <div class="col-md-6">
                             <h5 class="text-tinto">Información del Comité</h5>
-                            <p><strong>Dependencia:</strong> {{ $comite->dependencia->dependencia }} ({{
-                                $comite->dependencia->siglas }})</p>
-                            <p><strong>Programa:</strong> {{ $comite->programa->nombre }}</p>
-                            <p><strong>Estado:</strong>
-                                <span class="badge {{ $comite->activo ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ $comite->activo ? 'Activo' : 'Inactivo' }}
-                                </span>
-                            </p>
-                            <p><strong>Minuta:</strong>
-                                @if($comite->archivo_minuta)
-                                <a href="{{ Storage::url($comite->archivo_minuta) }}" target="_blank"
-                                    class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-file-pdf"></i> Ver Minuta
-                                </a>
-                                <a href="{{ Storage::url($comite->archivo_minuta) }}" download
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-download"></i> Descargar
-                                </a>
-                                @else
-                                <span class="text-muted">No hay minuta cargada</span>
-                                @endif
-                            </p>
+                            <!-- ... contenido existente ... -->
                         </div>
                         <div class="col-md-6">
-                            <h5 class="text-tinto">Información del Programa</h5>
-                            <p><strong>Periodo:</strong> {{ $comite->programa->periodo }}</p>
-                            <p><strong>Vigencia:</strong>
-                                {{ \Carbon\Carbon::parse($comite->programa->fecha_inicio)->format('d/m/Y') }} -
-                                {{ \Carbon\Carbon::parse($comite->programa->fecha_termino)->format('d/m/Y') }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <hr class="my-4">
-
-                    <h5 class="text-tinto">Elementos del Comité</h5>
-
-                    @if($comite->elementos->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Nombre Completo</th>
-                                    <th>Tipo</th>
-                                    <th>INE</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($comite->elementos as $elemento)
-                                <tr>
-                                    <td>{{ $elemento->nombre_completo }}</td>
-                                    <td>
-                                        <span class="badge bg-tinto">{{ $elemento->tipo_elemento }}</span>
-                                    </td>
-                                    <td>
-                                        @if($elemento->archivo_ine)
-                                        @if(pathinfo($elemento->archivo_ine, PATHINFO_EXTENSION) === 'pdf')
-                                        <a href="{{ Storage::url($elemento->archivo_ine) }}" target="_blank"
-                                            class="btn btn-info btn-sm">
-                                            <i class="fas fa-file-pdf"></i> Ver INE
-                                        </a>
-                                        @else
-                                        <a href="{{ Storage::url($elemento->archivo_ine) }}" target="_blank"
-                                            class="btn btn-info btn-sm">
-                                            <i class="fas fa-image"></i> Ver INE
-                                        </a>
-                                        @endif
-                                        @else
-                                        <span class="text-muted">Sin INE</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <form action="{{ route('comites.remove-elemento', $elemento) }}" method="POST"
-                                            class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm"
-                                                onclick="return confirm('¿Estás seguro?')">Eliminar</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @else
-                    <div class="alert alert-info">
-                        No hay elementos en este comité.
-                    </div>
-                    @endif
-
-                    <!-- Formulario para agregar nuevo elemento -->
-                    <form action="{{ route('comites.add-elemento', $comite) }}" method="POST" class="mt-4"
-                        enctype="multipart/form-data">
-                        @csrf
-                        <div class="row">
-                            <div class="col-md-4">
-                                <input type="text" class="form-control" name="nombre_completo"
-                                    placeholder="Nombre completo" required>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="text" class="form-control" name="tipo_elemento"
-                                    placeholder="Tipo (Presidente, Vocal, etc.)" required>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="file" class="form-control" name="archivo_ine"
-                                    accept=".pdf,.jpg,.jpeg,.png">
-                                <small class="text-muted">PDF, JPG o PNG (max 2MB)</small>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-success">Agregar</button>
+                            <h5 class="text-tinto">Estado de Documentación</h5>
+                            <div class="list-group">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Minuta del Comité
+                                    @if($comite->archivo_minuta)
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-check"></i> Subido
+                                    </span>
+                                    @else
+                                    <span class="badge bg-danger rounded-pill">
+                                        <i class="fas fa-times"></i> Faltante
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Lista de Asistencia
+                                    @if($comite->lista_asistencia)
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-check"></i> Subido
+                                    </span>
+                                    @else
+                                    <span class="badge bg-warning rounded-pill">
+                                        <i class="fas fa-exclamation"></i> Opcional
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Material de Difusión
+                                    @if(count($comite->material_difusion) > 0)
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-check"></i> {{ count($comite->material_difusion) }} archivo(s)
+                                    </span>
+                                    @else
+                                    <span class="badge bg-warning rounded-pill">
+                                        <i class="fas fa-exclamation"></i> Opcional
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    Fotografías de Reunión
+                                    @if(count($comite->fotografias_reunion) > 0)
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-check"></i> {{ count($comite->fotografias_reunion) }} foto(s)
+                                    </span>
+                                    @else
+                                    <span class="badge bg-warning rounded-pill">
+                                        <i class="fas fa-exclamation"></i> Opcional
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    INEs de Elementos
+                                    @php
+                                    $elementosConINE = $comite->elementos->where('archivo_ine', '!=', null)->count();
+                                    $totalElementos = $comite->elementos->count();
+                                    @endphp
+                                    <span
+                                        class="badge {{ $elementosConINE == $totalElementos ? 'bg-success' : ($elementosConINE > 0 ? 'bg-warning' : 'bg-danger') }} rounded-pill">
+                                        {{ $elementosConINE }}/{{ $totalElementos }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

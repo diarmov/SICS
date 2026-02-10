@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\ComiteVigilancia;
-use App\Dependencia;
-use App\Programa;
-use App\ElementoComite;
 use App\Estado;
+use App\Bitacora;
+use App\Programa;
+use App\Dependencia;
+use App\ElementoComite;
+use App\ComiteVigilancia;
+use Illuminate\Http\Request;
+use App\Traits\RegistraBitacora;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use App\Traits\RegistraBitacora;
 
 class ComiteVigilanciaController extends Controller
 {
@@ -68,6 +69,9 @@ class ComiteVigilanciaController extends Controller
             'elementos.*.nombre_completo' => 'required|string|max:255',
             'elementos.*.tipo_elemento' => 'required|string|max:100',
             'elementos.*.archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120', // 5MB
+            'material_difusion.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+            'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048', // 2MB cada foto
         ]);
 
         Log::info('Validaciones pasadas correctamente');
@@ -112,6 +116,94 @@ class ComiteVigilanciaController extends Controller
                     Log::info("Minuta guardada en: " . $rutaMinutaDB);
                 } catch (\Exception $e) {
                     Log::error("Error al guardar minuta: " . $e->getMessage());
+                }
+            }
+            // Guardar lista de asistencia si se subió
+            if ($request->hasFile('lista_asistencia')) {
+                try {
+                    $listaAsistencia = $request->file('lista_asistencia');
+                    $nombreLista = 'lista_asistencia_' . $comite->id . '_' . time() . '.' . $listaAsistencia->getClientOriginalExtension();
+
+                    Log::info("Subiendo lista de asistencia: {$nombreLista}");
+
+                    // Crear directorio si no existe
+                    $directorioListas = 'listas_asistencia';
+                    if (!Storage::disk('public')->exists($directorioListas)) {
+                        Storage::disk('public')->makeDirectory($directorioListas);
+                    }
+
+                    // Guardar archivo
+                    $rutaLista = $listaAsistencia->storeAs('public/' . $directorioListas, $nombreLista);
+                    $rutaListaDB = str_replace('public/', '', $rutaLista);
+
+                    // Actualizar comité con la ruta
+                    $comite->update(['lista_asistencia' => $rutaListaDB]);
+
+                    Log::info("Lista de asistencia guardada en: " . $rutaListaDB);
+                } catch (\Exception $e) {
+                    Log::error("Error al guardar lista de asistencia: " . $e->getMessage());
+                }
+            }
+
+            // Guardar material de difusión (múltiples archivos)
+            if ($request->hasFile('material_difusion')) {
+                try {
+                    $materiales = [];
+                    foreach ($request->file('material_difusion') as $archivo) {
+                        $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $archivo->getClientOriginalExtension();
+
+                        Log::info("Subiendo material de difusión: {$nombreMaterial}");
+
+                        // Crear directorio si no existe
+                        $directorioMateriales = 'material_difusion/' . $comite->id;
+                        if (!Storage::disk('public')->exists($directorioMateriales)) {
+                            Storage::disk('public')->makeDirectory($directorioMateriales);
+                        }
+
+                        // Guardar archivo
+                        $rutaMaterial = $archivo->storeAs('public/' . $directorioMateriales, $nombreMaterial);
+                        $rutaMaterialDB = str_replace('public/', '', $rutaMaterial);
+
+                        $materiales[] = $rutaMaterialDB;
+                    }
+
+                    // Guardar rutas como JSON en la base de datos
+                    $comite->update(['material_difusion' => json_encode($materiales)]);
+
+                    Log::info("Material de difusión guardado: " . count($materiales) . " archivos");
+                } catch (\Exception $e) {
+                    Log::error("Error al guardar material de difusión: " . $e->getMessage());
+                }
+            }
+
+            // Guardar fotografías de la reunión
+            if ($request->hasFile('fotografias')) {
+                try {
+                    $fotografias = [];
+                    foreach ($request->file('fotografias') as $index => $foto) {
+                        $nombreFoto = 'foto_' . $comite->id . '_' . ($index + 1) . '_' . time() . '.jpg';
+
+                        Log::info("Subiendo fotografía: {$nombreFoto}");
+
+                        // Crear directorio si no existe
+                        $directorioFotos = 'fotografias_reunion/' . $comite->id;
+                        if (!Storage::disk('public')->exists($directorioFotos)) {
+                            Storage::disk('public')->makeDirectory($directorioFotos);
+                        }
+
+                        // Guardar archivo
+                        $rutaFoto = $foto->storeAs('public/' . $directorioFotos, $nombreFoto);
+                        $rutaFotoDB = str_replace('public/', '', $rutaFoto);
+
+                        $fotografias[] = $rutaFotoDB;
+                    }
+
+                    // Guardar rutas como JSON en la base de datos
+                    $comite->update(['fotografias_reunion' => json_encode($fotografias)]);
+
+                    Log::info("Fotografías guardadas: " . count($fotografias) . " archivos");
+                } catch (\Exception $e) {
+                    Log::error("Error al guardar fotografías: " . $e->getMessage());
                 }
             }
 
@@ -217,7 +309,10 @@ class ComiteVigilanciaController extends Controller
             'id_estado' => 'required|exists:estados,id_estado',
             'id_municipio' => 'required|exists:municipios,id_municipio',
             'id_localidad' => 'required|exists:localidades,id_localidad',
-            'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120', // Agregar validación para minuta
+            'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120',
+            'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120',
+            'material_difusion.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+            'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048',
         ]);
 
         Log::info('Datos recibidos en update para comite ID ' . $comite->id . ':', [
@@ -269,10 +364,224 @@ class ComiteVigilanciaController extends Controller
                 Log::error("Error al actualizar minuta: " . $e->getMessage());
             }
         }
+        // Guardar lista de asistencia si se subió
+        if ($request->hasFile('lista_asistencia')) {
+            try {
+                // Eliminar lista anterior si existe
+                if ($comite->lista_asistencia && Storage::disk('public')->exists($comite->lista_asistencia)) {
+                    Storage::disk('public')->delete($comite->lista_asistencia);
+                }
+
+                $listaAsistencia = $request->file('lista_asistencia');
+                $nombreLista = 'lista_asistencia_' . $comite->id . '_' . time() . '.' . $listaAsistencia->getClientOriginalExtension();
+
+                Log::info("Actualizando lista de asistencia: {$nombreLista}");
+
+                // Crear directorio si no existe
+                $directorioListas = 'listas_asistencia';
+                if (!Storage::disk('public')->exists($directorioListas)) {
+                    Storage::disk('public')->makeDirectory($directorioListas);
+                }
+
+                // Guardar archivo
+                $rutaLista = $listaAsistencia->storeAs('public/' . $directorioListas, $nombreLista);
+                $rutaListaDB = str_replace('public/', '', $rutaLista);
+
+                // Agregar ruta a los datos de actualización
+                $updateData['lista_asistencia'] = $rutaListaDB;
+
+                Log::info("Lista de asistencia actualizada en: " . $rutaListaDB);
+            } catch (\Exception $e) {
+                Log::error("Error al actualizar lista de asistencia: " . $e->getMessage());
+            }
+        }
+
+        // Guardar material de difusión (múltiples archivos)
+        if ($request->hasFile('material_difusion')) {
+            try {
+                $materiales = $comite->material_difusion ?? []; // Mantener archivos existentes
+
+                foreach ($request->file('material_difusion') as $archivo) {
+                    $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $archivo->getClientOriginalExtension();
+
+                    Log::info("Agregando material de difusión: {$nombreMaterial}");
+
+                    // Crear directorio si no existe
+                    $directorioMateriales = 'material_difusion/' . $comite->id;
+                    if (!Storage::disk('public')->exists($directorioMateriales)) {
+                        Storage::disk('public')->makeDirectory($directorioMateriales);
+                    }
+
+                    // Guardar archivo
+                    $rutaMaterial = $archivo->storeAs('public/' . $directorioMateriales, $nombreMaterial);
+                    $rutaMaterialDB = str_replace('public/', '', $rutaMaterial);
+
+                    $materiales[] = $rutaMaterialDB;
+                }
+
+                // Agregar rutas a los datos de actualización
+                $updateData['material_difusion'] = json_encode($materiales);
+
+                Log::info("Material de difusión actualizado. Total: " . count($materiales) . " archivos");
+            } catch (\Exception $e) {
+                Log::error("Error al actualizar material de difusión: " . $e->getMessage());
+            }
+        }
+
+        // Guardar fotografías de la reunión
+        if ($request->hasFile('fotografias')) {
+            try {
+                $fotografias = $comite->fotografias_reunion ?? []; // Mantener fotos existentes
+
+                foreach ($request->file('fotografias') as $index => $foto) {
+                    $nombreFoto = 'foto_' . $comite->id . '_' . (count($fotografias) + $index + 1) . '_' . time() . '.jpg';
+
+                    Log::info("Agregando fotografía: {$nombreFoto}");
+
+                    // Crear directorio si no existe
+                    $directorioFotos = 'fotografias_reunion/' . $comite->id;
+                    if (!Storage::disk('public')->exists($directorioFotos)) {
+                        Storage::disk('public')->makeDirectory($directorioFotos);
+                    }
+
+                    // Guardar archivo
+                    $rutaFoto = $foto->storeAs('public/' . $directorioFotos, $nombreFoto);
+                    $rutaFotoDB = str_replace('public/', '', $rutaFoto);
+
+                    $fotografias[] = $rutaFotoDB;
+                }
+
+                // Agregar rutas a los datos de actualización
+                $updateData['fotografias_reunion'] = json_encode($fotografias);
+
+                Log::info("Fotografías actualizadas. Total: " . count($fotografias) . " fotos");
+            } catch (\Exception $e) {
+                Log::error("Error al actualizar fotografías: " . $e->getMessage());
+            }
+        }
 
         $comite->update($updateData);
 
         return redirect()->route('comites.index')->with('success', 'Comité de vigilancia actualizado exitosamente.');
+    }
+    /**
+     * Eliminar archivo de material de difusión
+     */
+    public function eliminarMaterialDifusion(Request $request, ComiteVigilancia $comite)
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+            abort(403, 'No autorizado para eliminar este archivo.');
+        }
+
+        $request->validate([
+            'archivo' => 'required|string'
+        ]);
+
+        $archivoRuta = $request->archivo;
+
+        try {
+            // Obtener array actual
+            $materiales = $comite->material_difusion;
+
+            // Buscar y eliminar el archivo del array
+            $indice = array_search($archivoRuta, $materiales);
+            if ($indice !== false) {
+                // Eliminar archivo físico
+                if (Storage::disk('public')->exists($archivoRuta)) {
+                    Storage::disk('public')->delete($archivoRuta);
+                }
+
+                // Eliminar del array
+                unset($materiales[$indice]);
+                $materiales = array_values($materiales); // Reindexar
+
+                // Actualizar en base de datos
+                $comite->update(['material_difusion' => json_encode($materiales)]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Archivo eliminado correctamente',
+                    'count' => count($materiales)
+                ]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Archivo no encontrado'], 404);
+        } catch (\Exception $e) {
+            Log::error("Error al eliminar material de difusión: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al eliminar archivo'], 500);
+        }
+    }
+
+    /**
+     * Eliminar fotografía de la reunión
+     */
+    public function eliminarFotografia(Request $request, ComiteVigilancia $comite)
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+            abort(403, 'No autorizado para eliminar esta foto.');
+        }
+
+        $request->validate([
+            'archivo' => 'required|string'
+        ]);
+
+        $fotoRuta = $request->archivo;
+
+        try {
+            // Obtener array actual
+            $fotografias = $comite->fotografias_reunion;
+
+            // Buscar y eliminar la foto del array
+            $indice = array_search($fotoRuta, $fotografias);
+            if ($indice !== false) {
+                // Eliminar archivo físico
+                if (Storage::disk('public')->exists($fotoRuta)) {
+                    Storage::disk('public')->delete($fotoRuta);
+                }
+
+                // Eliminar del array
+                unset($fotografias[$indice]);
+                $fotografias = array_values($fotografias); // Reindexar
+
+                // Actualizar en base de datos
+                $comite->update(['fotografias_reunion' => json_encode($fotografias)]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Fotografía eliminada correctamente',
+                    'count' => count($fotografias)
+                ]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Fotografía no encontrada'], 404);
+        } catch (\Exception $e) {
+            Log::error("Error al eliminar fotografía: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al eliminar fotografía'], 500);
+        }
+    }
+
+    /**
+     * Eliminar lista de asistencia
+     */
+    public function eliminarListaAsistencia(ComiteVigilancia $comite)
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+            abort(403, 'No autorizado para eliminar este archivo.');
+        }
+
+        try {
+            if ($comite->lista_asistencia && Storage::disk('public')->exists($comite->lista_asistencia)) {
+                Storage::disk('public')->delete($comite->lista_asistencia);
+                $comite->update(['lista_asistencia' => null]);
+
+                return back()->with('success', 'Lista de asistencia eliminada correctamente');
+            }
+
+            return back()->with('error', 'No se encontró la lista de asistencia');
+        } catch (\Exception $e) {
+            Log::error("Error al eliminar lista de asistencia: " . $e->getMessage());
+            return back()->with('error', 'Error al eliminar lista de asistencia');
+        }
     }
 
     public function destroy(ComiteVigilancia $comite)
@@ -357,5 +666,69 @@ class ComiteVigilanciaController extends Controller
         $elemento->delete();
 
         return redirect()->route('comites.show', $comiteId)->with('success', 'Elemento eliminado del comité.');
+    }
+
+    /**
+     * Validar un comité
+     */
+    public function validar(Request $request, ComiteVigilancia $comite)
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+            abort(403, 'No autorizado para validar comités.');
+        }
+
+        $comite->validar(Auth::id());
+
+        // Registrar en bitácora
+        if (auth()->check()) {
+            Bitacora::registrar(
+                'Validación',
+                'Comités de Vigilancia',
+                "Comité validado: " . $comite->getNombreParaBitacora()
+            );
+        }
+
+        return redirect()->route('comites.show', $comite)
+            ->with('success', 'Comité validado exitosamente.');
+    }
+
+    /**
+     * Invalidar un comité
+     */
+    public function invalidar(Request $request, ComiteVigilancia $comite)
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+            abort(403, 'No autorizado para invalidar comités.');
+        }
+
+        $comite->invalidar();
+
+        // Registrar en bitácora
+        if (auth()->check()) {
+            Bitacora::registrar(
+                'Invalidación',
+                'Comités de Vigilancia',
+                "Comité invalidado: " . $comite->getNombreParaBitacora()
+            );
+        }
+
+        return redirect()->route('comites.show', $comite)
+            ->with('warning', 'Comité invalidado.');
+    }
+
+    /**
+     * Listar comités pendientes de validación
+     */
+    public function pendientes()
+    {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+            abort(403, 'No autorizado para ver comités pendientes.');
+        }
+
+        $comites = ComiteVigilancia::pendientes()
+            ->with(['dependencia', 'programa', 'elementos', 'estado', 'municipio', 'localidad'])
+            ->get();
+
+        return view('comites.pendientes', compact('comites'));
     }
 }

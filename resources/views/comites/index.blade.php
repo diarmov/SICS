@@ -9,7 +9,14 @@
             <div class="card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="text-tinto">Gestión de Comités de Vigilancia</h2>
-                    <a href="{{ route('comites.create') }}" class="btn btn-tinto">Nuevo Comité</a>
+                    <div>
+                        {{-- @if(Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        <a href="{{ route('comites.pendientes') }}" class="btn btn-warning me-2">
+                            <i class="fas fa-clock"></i> Pendientes de Validación
+                        </a>
+                        @endif --}}
+                        <a href="{{ route('comites.create') }}" class="btn btn-tinto">Nuevo Comité</a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -25,6 +32,7 @@
                                     <th>Elementos</th>
                                     <th>Con INE</th>
                                     <th>Estado</th>
+                                    <th>Validación</th> <!-- Nueva columna -->
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -50,6 +58,18 @@
                                         <span class="badge {{ $comite->activo ? 'bg-success' : 'bg-secondary' }}">
                                             {{ $comite->activo ? 'Activo' : 'Inactivo' }}
                                         </span>
+                                    </td>
+                                    <td>
+                                        @if($comite->estaValidado())
+                                        <span class="badge bg-success"
+                                            title="Validado por {{ $comite->validador->name ?? 'Administrador' }} el {{ $comite->fecha_validacion->format('d/m/Y H:i') }}">
+                                            <i class="fas fa-check-circle"></i> Validado
+                                        </span>
+                                        @else
+                                        <span class="badge bg-warning" title="Pendiente de validación">
+                                            <i class="fas fa-clock"></i> Pendiente
+                                        </span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -89,6 +109,4 @@
     </div>
 </div>
 
-<!-- Agregar Font Awesome para los íconos si no los tienes -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 @endsection

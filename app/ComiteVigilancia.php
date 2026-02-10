@@ -17,7 +17,19 @@ class ComiteVigilancia extends Model
         'id_municipio',
         'id_localidad',
         'activo',
-        'archivo_minuta'
+        'archivo_minuta',
+        'lista_asistencia',
+        'material_difusion',
+        'fotografias_reunion',
+        'validado',
+        'validado_por',
+        'fecha_validacion'
+    ];
+
+    protected $dates = [
+        'created_at',
+        'updated_at',
+        'fecha_validacion' // Agregar esta línea
     ];
 
     public function dependencia()
@@ -102,6 +114,117 @@ class ComiteVigilancia extends Model
         }
 
         return implode(', ', array_reverse($ubicacion));
+    }
+
+    /**
+     * Obtener la URL de la lista de asistencia
+     */
+    public function getListaAsistenciaUrlAttribute()
+    {
+        if ($this->lista_asistencia && Storage::disk('public')->exists($this->lista_asistencia)) {
+            return Storage::disk('public')->url($this->lista_asistencia);
+        }
+        return null;
+    }
+
+    /**
+     * Obtener array de material de difusión
+     */
+    public function getMaterialDifusionAttribute($value)
+    {
+        return $value ? json_decode($value, true) : [];
+    }
+
+    /**
+     * Obtener URLs del material de difusión
+     */
+    public function getMaterialDifusionUrlsAttribute()
+    {
+        $urls = [];
+        foreach ($this->material_difusion as $ruta) {
+            if (Storage::disk('public')->exists($ruta)) {
+                $urls[] = Storage::disk('public')->url($ruta);
+            }
+        }
+        return $urls;
+    }
+
+    /**
+     * Obtener array de fotografías
+     */
+    public function getFotografiasReunionAttribute($value)
+    {
+        return $value ? json_decode($value, true) : [];
+    }
+
+    /**
+     * Obtener URLs de las fotografías
+     */
+    public function getFotografiasReunionUrlsAttribute()
+    {
+        $urls = [];
+        foreach ($this->fotografias_reunion as $ruta) {
+            if (Storage::disk('public')->exists($ruta)) {
+                $urls[] = Storage::disk('public')->url($ruta);
+            }
+        }
+        return $urls;
+    }
+
+    /**
+     * Obtener el usuario que validó el comité
+     */
+    public function validador()
+    {
+        return $this->belongsTo(User::class, 'validado_por');
+    }
+
+    /**
+     * Scope para comités validados
+     */
+    public function scopeValidados($query)
+    {
+        return $query->where('validado', true);
+    }
+
+    /**
+     * Scope para comités pendientes de validación
+     */
+    public function scopePendientes($query)
+    {
+        return $query->where('validado', false)->orWhereNull('validado');
+    }
+
+    /**
+     * Validar el comité
+     */
+    public function validar($usuarioId)
+    {
+        $this->update([
+            'validado' => true,
+            'validado_por' => $usuarioId,
+            'fecha_validacion' => now()
+        ]);
+    }
+
+    /**
+     * Invalidar el comité (marcar como no validado)
+     */
+    public function invalidar()
+    {
+        $this->update([
+            'validado' => false,
+            'validado_por' => null,
+            'fecha_validacion' => null
+        ]);
+    }
+
+    /**
+     * Verificar si el comité está validado
+     */
+    public function estaValidado()
+    {
+        return $this->validado && $this->validado_por && $this->fecha_validacion;
     }
 
     /**
