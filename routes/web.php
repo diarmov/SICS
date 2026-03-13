@@ -62,12 +62,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/comites/{comite}/edit', [ComiteVigilanciaController::class, 'edit'])->name('comites.edit');
     Route::put('/comites/{comite}', [ComiteVigilanciaController::class, 'update'])->name('comites.update');
     Route::delete('/comites/{comite}', [ComiteVigilanciaController::class, 'destroy'])->name('comites.destroy');
+
+    // Elementos del comité
     Route::post('/comites/{comite}/elementos', [ComiteVigilanciaController::class, 'addElemento'])->name('comites.add-elemento');
     Route::delete('/elementos/{elemento}', [ComiteVigilanciaController::class, 'removeElemento'])->name('comites.remove-elemento');
+
+    // Validación/Invalidación
     Route::post('/comites/{comite}/validar', [ComiteVigilanciaController::class, 'validar'])->name('comites.validar');
     Route::post('/comites/{comite}/invalidar', [ComiteVigilanciaController::class, 'invalidar'])->name('comites.invalidar');
+
+    // Pendientes
     Route::get('/comites/pendientes', [ComiteVigilanciaController::class, 'pendientes'])->name('comites.pendientes');
-    // Rutas para eliminar archivos del comité
+
+    // Eliminar archivos
     Route::post('/comites/{comite}/eliminar-material', [ComiteVigilanciaController::class, 'eliminarMaterialDifusion'])->name('comites.eliminar-material');
     Route::post('/comites/{comite}/eliminar-foto', [ComiteVigilanciaController::class, 'eliminarFotografia'])->name('comites.eliminar-foto');
     Route::post('/comites/{comite}/eliminar-lista', [ComiteVigilanciaController::class, 'eliminarListaAsistencia'])->name('comites.eliminar-lista');

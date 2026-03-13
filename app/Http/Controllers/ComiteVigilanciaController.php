@@ -23,6 +23,20 @@ class ComiteVigilanciaController extends Controller
         $this->middleware(['auth']);
     }
 
+    // ... otros métodos (index, create, store, show) ...
+
+    /**
+     * Muestra el formulario para editar un comité
+     *
+     * REGLAS DE ACCESO:
+     * - SuperUsuario y AdministradorCS: Pueden editar SIEMPRE (incluso comités validados)
+     * - CoordinadorEnlaces: Puede editar SOLO comités de su dependencia y SOLO si NO están validados
+     * - Otros usuarios: No pueden editar
+     *
+     * @param  \App\ComiteVigilancia  $comite
+     * @return \Illuminate\Http\Response
+     */
+
     public function index()
     {
         if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
@@ -277,32 +291,108 @@ class ComiteVigilanciaController extends Controller
 
     public function edit(ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        // Verificar roles
+        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
+        $esCoordinador = Auth::user()->hasRole('CoordinadorEnlaces');
+        $esDeSuDependencia = $comite->dependencia_id == Auth::user()->dependencia_id;
+
+        // LOG PARA DEPURACIÓN
+        Log::info('=== INTENTO DE EDICIÓN ===');
+        Log::info('Usuario: ' . Auth::user()->name);
+        Log::info('Rol Admin: ' . ($esAdmin ? 'SÍ' : 'NO'));
+        Log::info('Rol Coordinador: ' . ($esCoordinador ? 'SÍ' : 'NO'));
+        Log::info('Comité ID: ' . $comite->id);
+        Log::info('Comité validado: ' . ($comite->estaValidado() ? 'SÍ' : 'NO'));
+        Log::info('Dependencia del comité: ' . $comite->dependencia_id);
+        Log::info('Dependencia del usuario: ' . Auth::user()->dependencia_id);
+        Log::info('Es de su dependencia: ' . ($esDeSuDependencia ? 'SÍ' : 'NO'));
+
+        // VERIFICACIÓN 1: ¿El usuario tiene permiso para editar este comité?
+        // Si no es admin ni coordinador, y no es de su dependencia, no puede editar
+        if (!$esAdmin && !$esCoordinador && !$esDeSuDependencia) {
             abort(403, 'No autorizado para editar este comité.');
         }
 
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        // VERIFICACIÓN 2: Si es coordinador pero NO admin, verificar que sea de su dependencia
+        if ($esCoordinador && !$esAdmin && !$esDeSuDependencia) {
+            abort(403, 'No autorizado para editar comités de otras dependencias.');
+        }
+
+        // VERIFICACIÓN 3: Si el comité está validado, verificar quién puede editarlo
+        if ($comite->estaValidado()) {
+            // Caso 1: Es admin - PUEDE EDITAR (incluso estando validado)
+            if ($esAdmin) {
+                Log::info('Admin editando comité validado - PERMITIDO');
+                // No hacer nada, permitir acceso
+            }
+            // Caso 2: Es coordinador pero NO admin - NO PUEDE EDITAR comités validados
+            else if ($esCoordinador) {
+                Log::info('Coordinador intentando editar comité validado - BLOQUEADO');
+                return redirect()->route('comites.show', $comite)
+                    ->with('warning', 'Este comité ya ha sido validado. Para editarlo, un administrador debe invalidarlo primero.');
+            }
+            // Caso 3: Otro usuario - NO PUEDE EDITAR
+            else {
+                Log::info('Usuario sin permisos intentando editar comité validado - BLOQUEADO');
+                return redirect()->route('comites.show', $comite)
+                    ->with('warning', 'Este comité ya ha sido validado y no puede ser editado.');
+            }
+        }
+
+        // Cargar datos para los selects
+        if ($esAdmin) {
+            // Admin ve todas las dependencias y programas
             $dependencias = Dependencia::where('activo', true)->get();
             $programas = Programa::where('activo', true)->get();
         } else {
-            $dependencias = Dependencia::where('id', Auth::user()->dependencia_id)->where('activo', true)->get();
-            $programas = Programa::where('dependencia_id', Auth::user()->dependencia_id)->where('activo', true)->get();
+            // Coordinador solo ve su dependencia y sus programas
+            $dependencias = Dependencia::where('id', Auth::user()->dependencia_id)
+                ->where('activo', true)
+                ->get();
+            $programas = Programa::where('dependencia_id', Auth::user()->dependencia_id)
+                ->where('activo', true)
+                ->get();
         }
 
         $estados = Estado::where('activo', true)->orderBy('nombre')->get();
 
+        // Cargar relaciones necesarias
         $comite->load(['elementos', 'estado', 'municipio', 'localidad']);
 
         return view('comites.edit', compact('comite', 'dependencias', 'programas', 'estados'));
     }
 
+    /**
+     * Actualiza un comité específico
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\ComiteVigilancia  $comite
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        // Verificar roles
+        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
+        $esCoordinador = Auth::user()->hasRole('CoordinadorEnlaces');
+        $esDeSuDependencia = $comite->dependencia_id == Auth::user()->dependencia_id;
+
+        Log::info('=== UPDATE COMITÉ ===');
+        Log::info('ID: ' . $comite->id);
+        Log::info('Usuario: ' . Auth::user()->name);
+        Log::info('Rol Admin: ' . ($esAdmin ? 'SÍ' : 'NO'));
+        Log::info('Datos recibidos:', $request->except(['_token', '_method']));
+
+        // Verificar permisos básicos
+        if (!$esAdmin && !$esCoordinador && !$esDeSuDependencia) {
             abort(403, 'No autorizado para actualizar este comité.');
         }
 
-        $request->validate([
+        if ($esCoordinador && !$esAdmin && !$esDeSuDependencia) {
+            abort(403, 'No autorizado para actualizar comités de otras dependencias.');
+        }
+
+        // Validaciones
+        $rules = [
             'dependencia_id' => 'required|exists:dependencias,id',
             'programa_id' => 'required|exists:programas,id',
             'nombre' => 'required|string|max:255',
@@ -310,17 +400,64 @@ class ComiteVigilanciaController extends Controller
             'id_municipio' => 'required|exists:municipios,id_municipio',
             'id_localidad' => 'required|exists:localidades,id_localidad',
             'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120',
-            'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120',
-            'material_difusion.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
-            'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048',
-        ]);
+            'activo' => 'nullable|boolean',
+        ];
 
-        Log::info('Datos recibidos en update para comite ID ' . $comite->id . ':', [
+        // Validar archivos solo si se subieron
+        if ($request->hasFile('lista_asistencia')) {
+            $rules['lista_asistencia'] = 'file|mimes:pdf,doc,docx,xls,xlsx|max:5120';
+        }
+
+        if ($request->hasFile('material_difusion')) {
+            $rules['material_difusion.*'] = 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120';
+        }
+
+        if ($request->hasFile('fotografias')) {
+            $rules['fotografias.*'] = 'image|mimes:jpg,jpeg|max:2048';
+        }
+
+        $request->validate($rules);
+
+        // Datos básicos a actualizar
+        $updateData = [
+            'dependencia_id' => $request->dependencia_id,
+            'programa_id' => $request->programa_id,
+            'nombre' => $request->nombre,
             'id_estado' => $request->id_estado,
             'id_municipio' => $request->id_municipio,
             'id_localidad' => $request->id_localidad,
-            'tiene_minuta' => $request->hasFile('archivo_minuta')
-        ]);
+            'activo' => $request->has('activo') ? true : false,
+        ];
+
+        /**
+         * IMPORTANTE: Si el comité estaba validado y se está editando,
+         * automáticamente pierde la validación (debe volver a validarse después)
+         */
+        if ($comite->estaValidado()) {
+            Log::info('Comité validado siendo editado - SE QUITARÁ LA VALIDACIÓN');
+            $updateData['validado'] = false;
+            $updateData['validado_por'] = null;
+            $updateData['fecha_validacion'] = null;
+        }
+
+        // Solo validar si hay archivos nuevos
+        if ($request->hasFile('lista_asistencia')) {
+            $rules['lista_asistencia'] = 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:5120';
+        }
+
+        if ($request->hasFile('material_difusion')) {
+            $rules['material_difusion.*'] = 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120';
+            $rules['material_difusion'] = 'array';
+        }
+
+        if ($request->hasFile('fotografias')) {
+            $rules['fotografias.*'] = 'image|mimes:jpg,jpeg|max:2048';
+            $rules['fotografias'] = 'array';
+        }
+
+        $request->validate($rules);
+
+        Log::info('Validaciones pasadas correctamente'); // CORRECTO - solo un argumento
 
         // Datos de actualización
         $updateData = [
@@ -330,8 +467,24 @@ class ComiteVigilanciaController extends Controller
             'id_estado' => $request->id_estado,
             'id_municipio' => $request->id_municipio,
             'id_localidad' => $request->id_localidad,
-            'activo' => $request->has('activo'),
+            'activo' => $request->has('activo') ? true : false,
         ];
+
+        // Si se edita un comité validado, marcarlo como no validado
+        if ($comite->estaValidado()) {
+            $updateData['validado'] = false;
+            $updateData['validado_por'] = null;
+            $updateData['fecha_validacion'] = null;
+
+            // Registrar en bitácora
+            if (auth()->check()) {
+                Bitacora::registrar(
+                    'Modificación',
+                    'Comités de Vigilancia',
+                    "Comité modificado - Validación removida: " . $comite->getNombreParaBitacora()
+                );
+            }
+        }
 
         // Guardar archivo de minuta si se subió
         if ($request->hasFile('archivo_minuta')) {
@@ -344,7 +497,7 @@ class ComiteVigilanciaController extends Controller
                 $minuta = $request->file('archivo_minuta');
                 $nombreMinuta = 'minuta_' . $comite->id . '_' . time() . '.pdf';
 
-                Log::info("Actualizando minuta: {$nombreMinuta}");
+                Log::info('Actualizando minuta: ' . $nombreMinuta); // CORRECTO - solo un argumento
 
                 // Crear directorio si no existe
                 $directorioMinutas = 'minutas_comites';
@@ -359,11 +512,12 @@ class ComiteVigilanciaController extends Controller
                 // Agregar ruta de minuta a los datos de actualización
                 $updateData['archivo_minuta'] = $rutaMinutaDB;
 
-                Log::info("Minuta actualizada en: " . $rutaMinutaDB);
+                Log::info('Minuta actualizada en: ' . $rutaMinutaDB); // CORRECTO - solo un argumento
             } catch (\Exception $e) {
-                Log::error("Error al actualizar minuta: " . $e->getMessage());
+                Log::error('Error al actualizar minuta: ' . $e->getMessage()); // CORRECTO - solo un argumento
             }
         }
+
         // Guardar lista de asistencia si se subió
         if ($request->hasFile('lista_asistencia')) {
             try {
@@ -375,7 +529,7 @@ class ComiteVigilanciaController extends Controller
                 $listaAsistencia = $request->file('lista_asistencia');
                 $nombreLista = 'lista_asistencia_' . $comite->id . '_' . time() . '.' . $listaAsistencia->getClientOriginalExtension();
 
-                Log::info("Actualizando lista de asistencia: {$nombreLista}");
+                Log::info('Actualizando lista de asistencia: ' . $nombreLista); // CORRECTO - solo un argumento
 
                 // Crear directorio si no existe
                 $directorioListas = 'listas_asistencia';
@@ -390,21 +544,23 @@ class ComiteVigilanciaController extends Controller
                 // Agregar ruta a los datos de actualización
                 $updateData['lista_asistencia'] = $rutaListaDB;
 
-                Log::info("Lista de asistencia actualizada en: " . $rutaListaDB);
+                Log::info('Lista de asistencia actualizada en: ' . $rutaListaDB); // CORRECTO - solo un argumento
             } catch (\Exception $e) {
-                Log::error("Error al actualizar lista de asistencia: " . $e->getMessage());
+                Log::error('Error al actualizar lista de asistencia: ' . $e->getMessage()); // CORRECTO - solo un argumento
             }
         }
 
         // Guardar material de difusión (múltiples archivos)
         if ($request->hasFile('material_difusion')) {
             try {
-                $materiales = $comite->material_difusion ?? []; // Mantener archivos existentes
+                // Obtener material existente
+                $materiales = $comite->material_difusion ?? [];
 
                 foreach ($request->file('material_difusion') as $archivo) {
-                    $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $archivo->getClientOriginalExtension();
+                    $extension = $archivo->getClientOriginalExtension();
+                    $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $extension;
 
-                    Log::info("Agregando material de difusión: {$nombreMaterial}");
+                    Log::info('Agregando material de difusión: ' . $nombreMaterial); // CORRECTO - solo un argumento
 
                     // Crear directorio si no existe
                     $directorioMateriales = 'material_difusion/' . $comite->id;
@@ -422,21 +578,22 @@ class ComiteVigilanciaController extends Controller
                 // Agregar rutas a los datos de actualización
                 $updateData['material_difusion'] = json_encode($materiales);
 
-                Log::info("Material de difusión actualizado. Total: " . count($materiales) . " archivos");
+                Log::info('Material de difusión actualizado. Total: ' . count($materiales) . ' archivos'); // CORRECTO - solo un argumento
             } catch (\Exception $e) {
-                Log::error("Error al actualizar material de difusión: " . $e->getMessage());
+                Log::error('Error al actualizar material de difusión: ' . $e->getMessage()); // CORRECTO - solo un argumento
             }
         }
 
         // Guardar fotografías de la reunión
         if ($request->hasFile('fotografias')) {
             try {
-                $fotografias = $comite->fotografias_reunion ?? []; // Mantener fotos existentes
+                // Obtener fotografías existentes
+                $fotografias = $comite->fotografias_reunion ?? [];
 
-                foreach ($request->file('fotografias') as $index => $foto) {
-                    $nombreFoto = 'foto_' . $comite->id . '_' . (count($fotografias) + $index + 1) . '_' . time() . '.jpg';
+                foreach ($request->file('fotografias') as $foto) {
+                    $nombreFoto = 'foto_' . $comite->id . '_' . uniqid() . '_' . time() . '.jpg';
 
-                    Log::info("Agregando fotografía: {$nombreFoto}");
+                    Log::info('Agregando fotografía: ' . $nombreFoto); // CORRECTO - solo un argumento
 
                     // Crear directorio si no existe
                     $directorioFotos = 'fotografias_reunion/' . $comite->id;
@@ -454,23 +611,40 @@ class ComiteVigilanciaController extends Controller
                 // Agregar rutas a los datos de actualización
                 $updateData['fotografias_reunion'] = json_encode($fotografias);
 
-                Log::info("Fotografías actualizadas. Total: " . count($fotografias) . " fotos");
+                Log::info('Fotografías actualizadas. Total: ' . count($fotografias) . ' fotos'); // CORRECTO - solo un argumento
             } catch (\Exception $e) {
-                Log::error("Error al actualizar fotografías: " . $e->getMessage());
+                Log::error('Error al actualizar fotografías: ' . $e->getMessage()); // CORRECTO - solo un argumento
             }
         }
 
+        // Actualizar el comité
         $comite->update($updateData);
 
-        return redirect()->route('comites.index')->with('success', 'Comité de vigilancia actualizado exitosamente.');
+        // Refrescar la instancia para asegurar datos actualizados
+        $comite->refresh();
+
+        Log::info('Comité actualizado exitosamente. Validado: ' . ($comite->estaValidado() ? 'SÍ' : 'NO'));
+
+        return redirect()->route('comites.index')
+            ->with('success', 'Comité de vigilancia actualizado exitosamente.');
     }
+
+
     /**
      * Eliminar archivo de material de difusión
      */
     public function eliminarMaterialDifusion(Request $request, ComiteVigilancia $comite)
     {
         if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
-            abort(403, 'No autorizado para eliminar este archivo.');
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        // Verificar si el comité está validado
+        if ($comite->estaValidado()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este comité ya ha sido validado y no se pueden eliminar archivos.'
+            ], 403);
         }
 
         $request->validate([
@@ -480,8 +654,14 @@ class ComiteVigilanciaController extends Controller
         $archivoRuta = $request->archivo;
 
         try {
+            Log::info('Eliminando material de difusión: ' . $archivoRuta);
+
             // Obtener array actual
             $materiales = $comite->material_difusion;
+
+            if (!is_array($materiales)) {
+                $materiales = [];
+            }
 
             // Buscar y eliminar el archivo del array
             $indice = array_search($archivoRuta, $materiales);
@@ -489,6 +669,7 @@ class ComiteVigilanciaController extends Controller
                 // Eliminar archivo físico
                 if (Storage::disk('public')->exists($archivoRuta)) {
                     Storage::disk('public')->delete($archivoRuta);
+                    Log::info('Archivo físico eliminado');
                 }
 
                 // Eliminar del array
@@ -496,7 +677,9 @@ class ComiteVigilanciaController extends Controller
                 $materiales = array_values($materiales); // Reindexar
 
                 // Actualizar en base de datos
-                $comite->update(['material_difusion' => json_encode($materiales)]);
+                $comite->update(['material_difusion' => !empty($materiales) ? json_encode($materiales) : null]);
+
+                Log::info('Material actualizado en BD');
 
                 return response()->json([
                     'success' => true,
@@ -518,7 +701,15 @@ class ComiteVigilanciaController extends Controller
     public function eliminarFotografia(Request $request, ComiteVigilancia $comite)
     {
         if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
-            abort(403, 'No autorizado para eliminar esta foto.');
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        // Verificar si el comité está validado
+        if ($comite->estaValidado()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este comité ya ha sido validado y no se pueden eliminar archivos.'
+            ], 403);
         }
 
         $request->validate([
@@ -528,8 +719,14 @@ class ComiteVigilanciaController extends Controller
         $fotoRuta = $request->archivo;
 
         try {
+            Log::info('Eliminando fotografía: ' . $fotoRuta);
+
             // Obtener array actual
             $fotografias = $comite->fotografias_reunion;
+
+            if (!is_array($fotografias)) {
+                $fotografias = [];
+            }
 
             // Buscar y eliminar la foto del array
             $indice = array_search($fotoRuta, $fotografias);
@@ -537,6 +734,7 @@ class ComiteVigilanciaController extends Controller
                 // Eliminar archivo físico
                 if (Storage::disk('public')->exists($fotoRuta)) {
                     Storage::disk('public')->delete($fotoRuta);
+                    Log::info('Foto física eliminada');
                 }
 
                 // Eliminar del array
@@ -544,7 +742,9 @@ class ComiteVigilanciaController extends Controller
                 $fotografias = array_values($fotografias); // Reindexar
 
                 // Actualizar en base de datos
-                $comite->update(['fotografias_reunion' => json_encode($fotografias)]);
+                $comite->update(['fotografias_reunion' => !empty($fotografias) ? json_encode($fotografias) : null]);
+
+                Log::info('Fotografías actualizadas en BD');
 
                 return response()->json([
                     'success' => true,
@@ -563,24 +763,53 @@ class ComiteVigilanciaController extends Controller
     /**
      * Eliminar lista de asistencia
      */
-    public function eliminarListaAsistencia(ComiteVigilancia $comite)
+    public function eliminarListaAsistencia(Request $request, ComiteVigilancia $comite)
     {
         if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
-            abort(403, 'No autorizado para eliminar este archivo.');
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        try {
-            if ($comite->lista_asistencia && Storage::disk('public')->exists($comite->lista_asistencia)) {
-                Storage::disk('public')->delete($comite->lista_asistencia);
-                $comite->update(['lista_asistencia' => null]);
+        // Verificar si el comité está validado
+        if ($comite->estaValidado()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este comité ya ha sido validado y no se pueden eliminar archivos.'
+            ], 403);
+        }
 
-                return back()->with('success', 'Lista de asistencia eliminada correctamente');
+        $request->validate([
+            'archivo' => 'required|string'
+        ]);
+
+        $archivoRuta = $request->archivo;
+
+        try {
+            Log::info('Eliminando lista de asistencia: ' . $archivoRuta);
+
+            // Verificar que la ruta coincide con la que tiene el comité
+            if ($comite->lista_asistencia !== $archivoRuta) {
+                Log::warning('La ruta no coincide: ' . $comite->lista_asistencia . ' vs ' . $archivoRuta);
+                return response()->json(['success' => false, 'message' => 'El archivo no pertenece a este comité'], 404);
             }
 
-            return back()->with('error', 'No se encontró la lista de asistencia');
+            // Eliminar archivo físico
+            if (Storage::disk('public')->exists($archivoRuta)) {
+                Storage::disk('public')->delete($archivoRuta);
+                Log::info('Archivo físico eliminado');
+            }
+
+            // Actualizar en base de datos
+            $comite->update(['lista_asistencia' => null]);
+
+            Log::info('Lista de asistencia actualizada en BD');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lista de asistencia eliminada correctamente'
+            ]);
         } catch (\Exception $e) {
             Log::error("Error al eliminar lista de asistencia: " . $e->getMessage());
-            return back()->with('error', 'Error al eliminar lista de asistencia');
+            return response()->json(['success' => false, 'message' => 'Error al eliminar archivo'], 500);
         }
     }
 
@@ -601,7 +830,7 @@ class ComiteVigilanciaController extends Controller
         Log::info('=== AGREGANDO ELEMENTO A COMITÉ ===');
         Log::info('Comité ID: ' . $comite->id);
         Log::info('Datos recibidos:', $request->all());
-        Log::info('Archivo INE:', $request->hasFile('archivo_ine') ? 'Sí' : 'No');
+        Log::info('Archivo INE: ' . ($request->hasFile('archivo_ine') ? 'Sí' : 'No'));
 
         $request->validate([
             'nombre_completo' => 'required|string|max:255',
@@ -697,11 +926,26 @@ class ComiteVigilanciaController extends Controller
      */
     public function invalidar(Request $request, ComiteVigilancia $comite)
     {
+        // Solo administradores pueden invalidar
         if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
             abort(403, 'No autorizado para invalidar comités.');
         }
 
+        Log::info('=== INVALIDANDO COMITÉ ===');
+        Log::info('ID: ' . $comite->id);
+        Log::info('Usuario: ' . Auth::user()->name);
+        Log::info('Estado ANTES de invalidar: ' . ($comite->estaValidado() ? 'VALIDADO' : 'NO VALIDADO'));
+
+        /**
+         * Usamos el método del modelo que implementamos con save()
+         * Esto asegura que la instancia actual refleje los cambios
+         */
         $comite->invalidar();
+
+        // Refrescamos para estar 100% seguros
+        $comite->refresh();
+
+        Log::info('Estado DESPUÉS de invalidar: ' . ($comite->estaValidado() ? 'VALIDADO' : 'NO VALIDADO'));
 
         // Registrar en bitácora
         if (auth()->check()) {
@@ -712,8 +956,12 @@ class ComiteVigilanciaController extends Controller
             );
         }
 
-        return redirect()->route('comites.show', $comite)
-            ->with('warning', 'Comité invalidado.');
+        /**
+         * IMPORTANTE: Redirigimos a la página de edición con el ID
+         * Esto forzará una nueva carga del comité desde la BD
+         */
+        return redirect()->route('comites.edit', ['comite' => $comite->id])
+            ->with('success', 'Comité invalidado. Ahora puede editarlo.');
     }
 
     /**

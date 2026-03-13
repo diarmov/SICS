@@ -6,11 +6,11 @@
 <div class="container mt-4">
     <!-- Hero Section -->
     <div class="row align-items-center mb-5">
-        <div class="col-md-6">
-            <h1 class="display-4 text-tinto">Sistema Informático de Contraloría Social</h1>
+        <div class="col-md-6  text-center">
+            <h1 class="display-4 text-tinto text-shadow"><b>Sistema Informático de Contraloría Social</b></h1>
             <p class="lead">Plataforma para la gestión y seguimiento de programas sociales y comités de vigilancia.</p>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-6 text-center">
             <img src="{{ asset('storage/imgs/SICS.png') }}" alt="SICS" class="img-fluid rounded"
                 style="width: 30%; height: auto;">
         </div>
@@ -23,7 +23,7 @@
             @foreach($programas as $programa)
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
-                    <div class="card-body">
+                    <div class="card-body shadow">
                         <h5 class="card-title">{{ $programa->nombre }}</h5>
                         <p class="card-text">
                             <strong>Dependencia:</strong> {{ $programa->dependencia->siglas }}<br>
@@ -66,7 +66,7 @@
         <div class="row">
             @foreach($dependencias as $dependencia)
             <div class="col-md-3 mb-3">
-                <div class="card text-center">
+                <div class="card text-center zoom-card">
                     <div class="card-body">
                         <h6 class="card-title">{{ $dependencia->siglas }}</h6>
                         <p class="card-text small">{{ $dependencia->dependencia }}</p>

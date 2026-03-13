@@ -46,6 +46,25 @@
             min-height: calc(100vh - 56px);
             background-color: var(--color-gris-claro);
         }
+
+        .card.zoom-card {
+            /* Add a smooth transition for the transform property */
+            transition: transform 0.3s ease;
+        }
+
+        .card.zoom-card:hover {
+            /* Scale the card up by 5% (1.05) on hover */
+            transform: scale(1.05);
+            background-color: darkgray;
+            color: white;
+
+        }
+
+        .text-shadow {
+            text-shadow: 2px 2px 4px #000000;
+            font-weight: bolder;
+            /* Horizontal, Vertical, Blur, Color */
+        }
     </style>
 </head>
 
@@ -113,7 +132,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p>&copy; 2024 SICS - Sistema Informático de Contraloría Social</p>
+                    <p>&copy; 2026 SICS - Sistema Informático de Contraloría Social</p>
                 </div>
                 <div class="col-md-6 text-end">
                     <p>Desarrollado por la Dirección de Innovación Administrativa</p>

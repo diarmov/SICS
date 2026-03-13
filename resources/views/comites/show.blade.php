@@ -43,8 +43,17 @@
                         </form>
                         @endif
                         @endif
+                        @php
+                        $puedeEditar = !$comite->estaValidado() || Auth::user()->hasRole(['SuperUsuario',
+                        'AdministradorCS']);
+                        @endphp
 
+                        @if($puedeEditar)
                         <a href="{{ route('comites.edit', $comite) }}" class="btn btn-light btn-sm">Editar</a>
+                        </a>
+
+                        @endif
+
                         <a href="{{ route('comites.index') }}" class="btn btn-secondary btn-sm">Volver</a>
                     </div>
                 </div>

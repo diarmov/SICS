@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SICS - Sistema Informático de Contraloría Social')</title>
 
     <!-- Bootstrap CSS -->
@@ -15,7 +16,7 @@
     <style>
         :root {
             --color-tinto: #7c0a02;
-            --color-gris-claro: #f8f9fa;
+            --color-gris-claro: #c1c3c5;
         }
 
         .bg-tinto {
@@ -178,10 +179,10 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p>&copy; 2024 SICS - Sistema Informático de Contraloría Social</p>
+                    <p><b>&copy; 2026 SICS - Sistema Informático de Contraloría Social</b></p>
                 </div>
                 <div class="col-md-6 text-end">
-                    <p>Desarrollado con Laravel</p>
+                    <p><b>Desarrollado por Dirección de Innovación Administrativa</b></p>
                 </div>
             </div>
         </div>

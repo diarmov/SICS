@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ComiteVigilancia extends Model
 {
-    protected $table = 'comites_vigilancia'; // Especificar el nombre exacto de la tabla
+    protected $table = 'comites_vigilancia';
 
     protected $fillable = [
         'dependencia_id',
@@ -26,77 +26,173 @@ class ComiteVigilancia extends Model
         'fecha_validacion'
     ];
 
+    /**
+     * Atributos que deben ser convertidos a fechas (Carbon instances)
+     * Importante para Laravel 7
+     */
     protected $dates = [
         'created_at',
         'updated_at',
-        'fecha_validacion' // Agregar esta línea
+        'fecha_validacion'
     ];
 
+    // ===== RELACIONES =====
+
+    /**
+     * Relación con la dependencia
+     * Un comité pertenece a una dependencia
+     */
     public function dependencia()
     {
         return $this->belongsTo(Dependencia::class);
     }
 
+    /**
+     * Relación con el programa
+     * Un comité pertenece a un programa
+     */
     public function programa()
     {
         return $this->belongsTo(Programa::class);
     }
 
+    /**
+     * Relación con los elementos del comité
+     * Un comité tiene muchos elementos (presidentes, vocales, etc.)
+     */
     public function elementos()
     {
         return $this->hasMany(ElementoComite::class);
     }
+
     /**
-     * Obtener nombre para bitácora
+     * Relación con el estado (ubicación)
+     */
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'id_estado', 'id_estado');
+    }
+
+    /**
+     * Relación con el municipio (ubicación)
+     */
+    public function municipio()
+    {
+        return $this->belongsTo(Municipio::class, 'id_municipio', 'id_municipio');
+    }
+
+    /**
+     * Relación con la localidad (ubicación)
+     */
+    public function localidad()
+    {
+        return $this->belongsTo(Localidad::class, 'id_localidad', 'id_localidad');
+    }
+
+    /**
+     * Relación con el usuario que validó el comité
+     */
+    public function validador()
+    {
+        return $this->belongsTo(User::class, 'validado_por');
+    }
+
+    // ===== MÉTODOS DE VALIDACIÓN =====
+
+    /**
+     * Verifica si el comité está validado
+     *
+     * Para que un comité esté validado debe cumplir:
+     * 1. El campo validado debe ser true (o 1 en BD)
+     * 2. Debe tener un usuario que lo validó (validado_por no nulo)
+     * 3. Debe tener una fecha de validación (fecha_validacion no nula)
+     *
+     * @return bool
+     */
+    public function estaValidado()
+    {
+        // En MySQL, true/false se guarda como 1/0, por eso verificamos ambos casos
+        $validado = $this->validado == 1 || $this->validado === true;
+
+        return $validado &&
+            !is_null($this->validado_por) &&
+            !is_null($this->fecha_validacion);
+    }
+
+    /**
+     * Valida el comité
+     * Establece los campos de validación y guarda en BD
+     *
+     * @param int $usuarioId ID del usuario que valida
+     * @return bool
+     */
+    public function validar($usuarioId)
+    {
+        $this->validado = true;      // En BD se guardará como 1
+        $this->validado_por = $usuarioId;
+        $this->fecha_validacion = now();
+
+        // Usamos save() en lugar de update() para asegurar que los cambios
+        // se apliquen inmediatamente en la instancia actual
+        return $this->save();
+    }
+
+    /**
+     * Invalida el comité
+     * Elimina los campos de validación y guarda en BD
+     *
+     * @return bool
+     */
+    public function invalidar()
+    {
+        $this->validado = false;      // En BD se guardará como 0
+        $this->validado_por = null;
+        $this->fecha_validacion = null;
+
+        // Usamos save() para asegurar que la instancia actual refleje los cambios
+        return $this->save();
+    }
+
+    // ===== SCOPES =====
+
+    /**
+     * Scope para filtrar comités validados
+     */
+    public function scopeValidados($query)
+    {
+        return $query->where('validado', true);
+    }
+
+    /**
+     * Scope para filtrar comités pendientes de validación
+     * Incluye comités con validado = false O null
+     */
+    public function scopePendientes($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('validado', false)->orWhereNull('validado');
+        });
+    }
+
+    // ===== ACCESSORS Y MUTATORS =====
+
+    /**
+     * Obtiene el nombre completo para mostrar en bitácora
+     *
+     * @return string
      */
     public function getNombreParaBitacora()
     {
-        return $this->nombre . " (" . $this->dependencia->siglas . ")";
-    }
-
-    // Nuevas relaciones
-
-    public function estado()
-    {
-        return $this->belongsTo(\App\Estado::class, 'id_estado', 'id_estado');
-    }
-
-    public function municipio()
-    {
-        return $this->belongsTo(\App\Municipio::class, 'id_municipio', 'id_municipio');
-    }
-
-    public function localidad()
-    {
-        return $this->belongsTo(\App\Localidad::class, 'id_localidad', 'id_localidad');
+        $siglas = optional($this->dependencia)->siglas ?? 'Sin dependencia';
+        return $this->nombre . " (" . $siglas . ")";
     }
 
     /**
-     * Obtener la URL del archivo de minuta
+     * Obtiene la ubicación completa del comité
+     * Formato: Localidad, Municipio, Estado
+     *
+     * @return string
      */
-    public function getMinutaUrlAttribute()
-    {
-        if ($this->archivo_minuta && Storage::disk('public')->exists($this->archivo_minuta)) {
-            return Storage::disk('public')->url($this->archivo_minuta);
-        }
-        return null;
-    }
-
-    /**
-     * Eliminar archivo de minuta al eliminar el comité
-     */
-    public function deleteMinuta()
-    {
-        if ($this->archivo_minuta && Storage::disk('public')->exists($this->archivo_minuta)) {
-            Storage::disk('public')->delete($this->archivo_minuta);
-        }
-    }
-
-
-    /**
-     * Boot method para registrar eventos del modelo
-     */
-    // Método para obtener ubicación completa
     public function getUbicacionCompletaAttribute()
     {
         $ubicacion = [];
@@ -117,7 +213,22 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener la URL de la lista de asistencia
+     * Accessor para obtener la URL de la minuta
+     *
+     * @return string|null
+     */
+    public function getMinutaUrlAttribute()
+    {
+        if ($this->archivo_minuta && Storage::disk('public')->exists($this->archivo_minuta)) {
+            return Storage::disk('public')->url($this->archivo_minuta);
+        }
+        return null;
+    }
+
+    /**
+     * Accessor para obtener la URL de la lista de asistencia
+     *
+     * @return string|null
      */
     public function getListaAsistenciaUrlAttribute()
     {
@@ -128,7 +239,11 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener array de material de difusión
+     * Accessor para decodificar el JSON de material de difusión
+     * Convierte el JSON almacenado en un array
+     *
+     * @param mixed $value Valor del JSON en BD
+     * @return array
      */
     public function getMaterialDifusionAttribute($value)
     {
@@ -136,7 +251,9 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener URLs del material de difusión
+     * Obtiene las URLs del material de difusión
+     *
+     * @return array
      */
     public function getMaterialDifusionUrlsAttribute()
     {
@@ -150,7 +267,11 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener array de fotografías
+     * Accessor para decodificar el JSON de fotografías
+     * Convierte el JSON almacenado en un array
+     *
+     * @param mixed $value Valor del JSON en BD
+     * @return array
      */
     public function getFotografiasReunionAttribute($value)
     {
@@ -158,7 +279,9 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener URLs de las fotografías
+     * Obtiene las URLs de las fotografías
+     *
+     * @return array
      */
     public function getFotografiasReunionUrlsAttribute()
     {
@@ -172,88 +295,60 @@ class ComiteVigilancia extends Model
     }
 
     /**
-     * Obtener el usuario que validó el comité
+     * Elimina el archivo de minuta del almacenamiento
      */
-    public function validador()
+    public function deleteMinuta()
     {
-        return $this->belongsTo(User::class, 'validado_por');
+        if ($this->archivo_minuta && Storage::disk('public')->exists($this->archivo_minuta)) {
+            Storage::disk('public')->delete($this->archivo_minuta);
+        }
     }
 
-    /**
-     * Scope para comités validados
-     */
-    public function scopeValidados($query)
-    {
-        return $query->where('validado', true);
-    }
+    // ===== BOOT METHOD =====
 
     /**
-     * Scope para comités pendientes de validación
-     */
-    public function scopePendientes($query)
-    {
-        return $query->where('validado', false)->orWhereNull('validado');
-    }
-
-    /**
-     * Validar el comité
-     */
-    public function validar($usuarioId)
-    {
-        $this->update([
-            'validado' => true,
-            'validado_por' => $usuarioId,
-            'fecha_validacion' => now()
-        ]);
-    }
-
-    /**
-     * Invalidar el comité (marcar como no validado)
-     */
-    public function invalidar()
-    {
-        $this->update([
-            'validado' => false,
-            'validado_por' => null,
-            'fecha_validacion' => null
-        ]);
-    }
-
-    /**
-     * Verificar si el comité está validado
-     */
-    public function estaValidado()
-    {
-        return $this->validado && $this->validado_por && $this->fecha_validacion;
-    }
-
-    /**
-     * Boot method para registrar eventos del modelo
+     * Eventos del modelo para registrar en bitácora
      */
     protected static function boot()
     {
         parent::boot();
 
+        // Al crear un comité
         static::created(function ($comite) {
             if (auth()->check()) {
-                Bitacora::registrar('Creación', 'Comités de Vigilancia', "Comité creado: " . $comite->getNombreParaBitacora());
+                Bitacora::registrar(
+                    'Creación',
+                    'Comités de Vigilancia',
+                    "Comité creado: " . $comite->getNombreParaBitacora()
+                );
             }
         });
 
+        // Al actualizar un comité
         static::updated(function ($comite) {
             if (auth()->check()) {
-                Bitacora::registrar('Actualización', 'Comités de Vigilancia', "Comité actualizado: " . $comite->getNombreParaBitacora());
+                Bitacora::registrar(
+                    'Actualización',
+                    'Comités de Vigilancia',
+                    "Comité actualizado: " . $comite->getNombreParaBitacora()
+                );
             }
         });
 
+        // Antes de eliminar un comité (eliminar archivos asociados)
         static::deleting(function ($comite) {
-            // Eliminar archivo de minuta al eliminar el comité
             $comite->deleteMinuta();
+            // Aquí podrías eliminar también los otros archivos si es necesario
         });
 
+        // Después de eliminar un comité
         static::deleted(function ($comite) {
             if (auth()->check()) {
-                Bitacora::registrar('Eliminación', 'Comités de Vigilancia', "Comité eliminado: " . $comite->getNombreParaBitacora());
+                Bitacora::registrar(
+                    'Eliminación',
+                    'Comités de Vigilancia',
+                    "Comité eliminado: " . $comite->getNombreParaBitacora()
+                );
             }
         });
     }

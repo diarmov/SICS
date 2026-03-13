@@ -77,10 +77,24 @@
                                                 title="Ver">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+
+                                            @php
+                                            $puedeEditar = !$comite->estaValidado() ||
+                                            Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
+                                            @endphp
+
+                                            @if($puedeEditar)
                                             <a href="{{ route('comites.edit', $comite) }}"
                                                 class="btn btn-primary btn-sm" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            @else
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                title="Comité validado - Solo administradores" disabled>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            @endif
+
                                             <form action="{{ route('comites.destroy', $comite) }}" method="POST"
                                                 class="d-inline">
                                                 @csrf
