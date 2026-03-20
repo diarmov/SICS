@@ -6,16 +6,29 @@
 <div class="container mt-4">
     <!-- Hero Section -->
     <div class="row align-items-center mb-5">
-        <div class="col-md-6  text-center">
+        <div class="col-md-4 text-center">
+            <img src="{{ asset('storage/imgs/GOBZAC.png') }}" alt="SICS" class="img-fluid rounded"
+                style="width: 80%; height: auto;">
+        </div>
+        <div class="col-md-4 text-center">
+            <img src="{{ asset('storage/imgs/pROGRESO.png') }}" alt="SICS" class="img-fluid rounded"
+                style="width: 80%; height: auto;">
+        </div>
+        <div class="col-md-4 text-center">
+            <img src="{{ asset('storage/imgs/SFP.png') }}" alt="SICS" class="img-fluid rounded"
+                style="width: 80%; height: auto;">
+        </div>
+    </div>
+    <div class="row align-items-center mb-5">
+        <div class="col-md-9 text-center">
             <h1 class="display-4 text-tinto text-shadow"><b>Sistema Informático de Contraloría Social</b></h1>
             <p class="lead">Plataforma para la gestión y seguimiento de programas sociales y comités de vigilancia.</p>
         </div>
-        <div class="col-md-6 text-center">
+        <div class="col-md-3 text-left">
             <img src="{{ asset('storage/imgs/SICS.png') }}" alt="SICS" class="img-fluid rounded"
-                style="width: 30%; height: auto;">
+                style="width: 50%; height: auto;">
         </div>
     </div>
-
     <!-- Programas Destacados -->
     <section class="mb-5">
         <h2 class="text-tinto mb-4">Programas Activos</h2>
