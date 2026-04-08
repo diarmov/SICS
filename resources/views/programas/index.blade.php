@@ -55,7 +55,7 @@
                                     <th>Beneficiarios</th>
                                     <th>Monto Vigilado</th>
                                     <th>Informes</th>
-                                    {{-- <th>Comités</th> --}}
+                                    <th>Guía Operativa</th>
                                     <th>Inicio</th>
                                     <th>Término</th>
                                     <th>Estado</th>
@@ -77,24 +77,38 @@
                                             {{ $programa->informes->count() }}/{{ $programa->numero_informes }}
                                         </span>
                                     </td>
-                                    {{-- <td>
-                                        @if($programa->comitesVigilancia->count() > 0)
-                                        <span class="badge bg-warning"
-                                            title="{{ $programa->comitesVigilancia->count() }} comité(s) de vigilancia">
-                                            <i class="fas fa-users"></i> {{ $programa->comitesVigilancia->count() }}
-                                        </span>
+                                    <td>
+                                        @if($programa->guia_operativa_pdf)
+                                        @if($programa->guia_operativa_validada)
+                                        <span class="badge bg-success">Validada</span>
+                                        @elseif($programa->guia_operativa_observaciones)
+                                        <span class="badge bg-danger">Con Observación</span>
+                                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="tooltip"
+                                            title="{{ $programa->guia_operativa_observaciones }}">
+                                            <i class="fas fa-comment"></i>
+                                        </button>
                                         @else
-                                        <span class="badge bg-secondary">Sin comités</span>
+                                        <span class="badge bg-warning">Pendiente</span>
                                         @endif
-                                    </td> --}}
+                                        @else
+                                        <span class="text-muted">No cargada</span>
+                                        @endif
+                                    </td>
                                     <td>{{ \Carbon\Carbon::parse($programa->fecha_inicio)->format('d/m/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($programa->fecha_termino)->format('d/m/Y') }}</td>
+                                    <!-- En la columna de Estado, modificar: -->
                                     <td>
-                                        <span class="badge {{ $programa->activo ? 'bg-success' : 'bg-secondary' }}">
-                                            {{ $programa->activo ? 'Activo' : 'Inactivo' }}
-                                        </span>
+                                        @if($programa->activo && $programa->guia_operativa_validada)
+                                        <span class="badge bg-success">Activo</span>
                                         @if($programa->esta_activo)
                                         <span class="badge bg-info">En Periodo</span>
+                                        @endif
+                                        @elseif($programa->guia_operativa_validada)
+                                        <span class="badge bg-warning">Validada (Inactivo)</span>
+                                        @elseif($programa->guia_operativa_observaciones)
+                                        <span class="badge bg-danger">Con Observación</span>
+                                        @else
+                                        <span class="badge bg-secondary">Pendiente</span>
                                         @endif
                                     </td>
                                     <td>

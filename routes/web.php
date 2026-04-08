@@ -1,22 +1,23 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\BitacoraController;
+use App\Http\Controllers\CarruselController;
+use App\Http\Controllers\ComiteVigilanciaController;
+use App\Http\Controllers\DependenciaController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProgramaController;
 use App\Http\Controllers\TipoApoyoController;
 use App\Http\Controllers\UbicacionController;
-use App\Http\Controllers\DependenciaController;
-use App\Http\Controllers\ComiteVigilanciaController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // Rutas públicas
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/contacto', [HomeController::class, 'contacto'])->name('contacto');
-Route::get('/comites-vigilancia', [HomeController::class, 'comites'])->name('comites.public');
-Route::get('/programas-list', [HomeController::class, 'programas'])->name('programas.public');
-Route::get('/dependencias-list', [HomeController::class, 'dependencias'])->name('dependencias.public');
+Route::get('/contraloriasocial', [HomeController::class, 'contraloriasocial'])->name('contraloriasocial.public');
+Route::get('/consulta', [HomeController::class, 'consulta'])->name('consulta.public');
+Route::get('/denuncias', [HomeController::class, 'denuncias'])->name('denuncias.public');
+Route::get('/contacto', [HomeController::class, 'contacto'])->name('contacto.public');
 
 // Rutas de autenticación
 Auth::routes(['register' => false]);
@@ -53,6 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/programas/{programa}/informes', [ProgramaController::class, 'informes'])->name('programas.informes');
     Route::post('/programas/{programa}/informes', [ProgramaController::class, 'storeInforme'])->name('programas.store-informe');
     Route::delete('/informes/{informe}', [ProgramaController::class, 'destroyInforme'])->name('programas.destroy-informe');
+    Route::post('/programas/{programa}/validar-guia', [ProgramaController::class, 'validarGuiaOperativa'])->name('programas.validar-guia');
+    Route::post('/programas/{programa}/editar-guia', [ProgramaController::class, 'editarGuiaOperativa'])->name('programas.editar-guia');
 
     // Comités de Vigilancia
     Route::get('/comites', [ComiteVigilanciaController::class, 'index'])->name('comites.index');
@@ -91,6 +94,18 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{tipoApoyo}', [TipoApoyoController::class, 'update'])->name('update');
         Route::put('/{tipoApoyo}/toggle-status', [TipoApoyoController::class, 'toggleStatus'])->name('toggle-status');
         Route::delete('/{tipoApoyo}', [TipoApoyoController::class, 'destroy'])->name('destroy');
+    });
+
+    // Agregar después de las rutas de Tipos de Apoyo
+    // Carrusel (Solo para SuperUsuario y AdministradorCS)
+    Route::prefix('carrusel')->name('carrusel.')->middleware(['auth'])->group(function () {
+        Route::get('/', [CarruselController::class, 'index'])->name('index');
+        Route::get('/create', [CarruselController::class, 'create'])->name('create');
+        Route::post('/', [CarruselController::class, 'store'])->name('store');
+        Route::get('/{carrusel}/edit', [CarruselController::class, 'edit'])->name('edit');
+        Route::put('/{carrusel}', [CarruselController::class, 'update'])->name('update');
+        Route::delete('/{carrusel}', [CarruselController::class, 'destroy'])->name('destroy');
+        Route::post('/{carrusel}/toggle-status', [CarruselController::class, 'toggleStatus'])->name('toggle-status');
     });
 
     // Rutas para selects dependientes

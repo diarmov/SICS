@@ -22,12 +22,17 @@ class Programa extends Model
         'numero_informes',
         'numero_beneficiarios',
         'monto_vigilado',
-        'activo'
+        'activo',
+        'guia_operativa_validada',
+        'guia_operativa_observaciones',
+        'guia_operativa_validada_por',
+        'guia_operativa_fecha_validacion'
     ];
 
     protected $dates = [
         'fecha_inicio',
         'fecha_termino',
+        'guia_operativa_fecha_validacion',
         'created_at',
         'updated_at'
     ];
@@ -37,7 +42,8 @@ class Programa extends Model
         'fecha_termino' => 'date',
         'numero_beneficiarios' => 'integer',
         'monto_vigilado' => 'decimal:2',
-        'activo' => 'boolean'
+        'activo' => 'boolean',
+        'guia_operativa_validada' => 'boolean'
     ];
 
     public function dependencia()
@@ -45,7 +51,6 @@ class Programa extends Model
         return $this->belongsTo(Dependencia::class);
     }
 
-    // Agregar esta relación
     public function tipoApoyo()
     {
         return $this->belongsTo(\App\TipoApoyo::class, 'tipo_apoyo_id');
@@ -56,17 +61,30 @@ class Programa extends Model
         return $this->hasMany(ComiteVigilancia::class);
     }
 
-    // Nueva relación con informes
     public function informes()
     {
         return $this->hasMany(Informe::class);
     }
 
-    // Método para verificar si el programa está activo (dentro del periodo)
+    public function validador()
+    {
+        return $this->belongsTo(User::class, 'guia_operativa_validada_por');
+    }
+
+    // Método para verificar si el programa está activo (dentro del periodo Y validado)
     public function getEstaActivoAttribute()
     {
         $hoy = Carbon::now();
-        return $hoy->between($this->fecha_inicio, $this->fecha_termino);
+        $enPeriodo = $hoy->between($this->fecha_inicio, $this->fecha_termino);
+
+        // Solo está activo si está en periodo Y tiene la guía operativa validada
+        return $enPeriodo && $this->guia_operativa_validada && $this->activo;
+    }
+
+    // Método para verificar si la guía operativa está pendiente de validación
+    public function getGuiaOperativaPendienteAttribute()
+    {
+        return $this->guia_operativa_pdf && !$this->guia_operativa_validada;
     }
 
     // Método para verificar si se pueden agregar informes
@@ -85,8 +103,6 @@ class Programa extends Model
     {
         return $this->nombre . " (" . $this->dependencia->siglas . " - " . $this->periodo . ")";
     }
-
-
 
     protected static function boot()
     {

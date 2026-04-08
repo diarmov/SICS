@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Programa;
+use App\Bitacora;
+// Ensure the Carrusel model exists in the App namespace
+use App\Carrusel;
 use App\ComiteVigilancia;
 use App\Dependencia;
-use App\Bitacora;
+use App\Programa;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
@@ -18,30 +20,39 @@ class HomeController extends Controller
         $comites = ComiteVigilancia::where('activo', true)->take(6)->get();
         $dependencias = Dependencia::where('activo', true)->get();
 
-        return view('home', compact('programas', 'comites', 'dependencias'));
+        // Obtener imágenes activas del carrusel ordenadas por orden
+        $carruseles = Carrusel::where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('home', compact('programas', 'comites', 'dependencias', 'carruseles'));
     }
 
     public function contacto()
     {
-        return view('contacto');
+        return view('principales/contacto');
     }
 
-    public function comites()
+    public function contraloriasocial()
     {
         $comites = ComiteVigilancia::where('activo', true)->get();
-        return view('comites', compact('comites'));
+        return view('principales/contraloriasocial', compact('comites'));
     }
 
-    public function programas()
+    public function consulta()
     {
-        $programas = Programa::where('activo', true)->get();
-        return view('programas', compact('programas'));
+        $programas = Programa::where('activo', true)->take(6)->get();
+        $comites = ComiteVigilancia::where('activo', true)->take(6)->get();
+        $dependencias = Dependencia::where('activo', true)->get();
+
+        return view('principales/consulta', compact('programas', 'dependencias', 'comites'));
     }
 
-    public function dependencias()
+    public function denuncias()
     {
         $dependencias = Dependencia::where('activo', true)->get();
-        return view('dependencias', compact('dependencias'));
+        return view('principales/denuncias', compact('dependencias'));
     }
 
     // Método para el dashboard

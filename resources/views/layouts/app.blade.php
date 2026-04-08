@@ -83,16 +83,16 @@
                         <a class="nav-link" href="{{ route('home') }}">Inicio</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('contacto') }}">Contacto</a>
+                        <a class="nav-link" href="{{ route('contraloriasocial.public') }}">Contraloría Social</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('comites.public') }}">Comités de Vigilancia</a>
+                        <a class="nav-link" href="{{ route('consulta.public') }}">Consulta pública</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('programas.public') }}">Programas</a>
+                        <a class="nav-link" href="{{ route('denuncias.public') }}">Denuncias</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('dependencias.public') }}">Dependencias Ejecutoras</a>
+                        <a class="nav-link" href="{{ route('contacto.public') }}">Contacto</a>
                     </li>
                 </ul>
 
