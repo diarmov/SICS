@@ -71,9 +71,8 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-tinto">
         <div class="container">
-            <img src="{{ asset('storage/imgs/SICS.png') }}" alt="SICS" class="img-fluid rounded"
+            <img src="{{ asset('storage/imgs/SICS-bco.png') }}" alt="SICS" class="img-fluid rounded"
                 style="width: 5%; height: auto;">
-            <a class="navbar-brand" href="{{ route('home') }}">SICS</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
