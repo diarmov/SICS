@@ -67,8 +67,23 @@ class ComiteVigilanciaController extends Controller
 
     public function store(Request $request)
     {
+        // DEPURACIÓN COMPLETA
         Log::info('=== INICIANDO STORE COMITÉ ===');
-        Log::info('Datos recibidos:', $request->all());
+        Log::info('POST data:', $request->except(['_token']));
+        Log::info('FILES keys:', array_keys($request->allFiles()));
+
+        // Verificar específicamente materiales
+        if ($request->hasFile('material_archivo')) {
+            Log::info('material_archivo existe, cantidad: ' . count($request->file('material_archivo')));
+            foreach ($request->file('material_archivo') as $idx => $file) {
+                Log::info("Archivo {$idx}: " . ($file ? $file->getClientOriginalName() : 'null'));
+            }
+        } else {
+            Log::warning('material_archivo NO existe en la request');
+        }
+
+        // Log::info('=== INICIANDO STORE COMITÉ ===');
+        // Log::info('Datos recibidos:', $request->all());
 
         // Validaciones
         $request->validate([
@@ -84,7 +99,11 @@ class ComiteVigilanciaController extends Controller
             'elementos.*.tipo_elemento' => 'required|string|max:100',
             'elementos.*.archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120', // 5MB
-            'material_difusion.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+            // Nueva validación para materiales de difusión
+            'materiales' => 'nullable|array',
+            'materiales.*.tipo' => 'required|string|max:100',
+            'materiales.*.cantidad' => 'required|integer|min:1',
+            'materiales.*.archivo' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
             'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048', // 2MB cada foto
         ]);
 
@@ -132,6 +151,7 @@ class ComiteVigilanciaController extends Controller
                     Log::error("Error al guardar minuta: " . $e->getMessage());
                 }
             }
+
             // Guardar lista de asistencia si se subió
             if ($request->hasFile('lista_asistencia')) {
                 try {
@@ -159,14 +179,23 @@ class ComiteVigilanciaController extends Controller
                 }
             }
 
-            // Guardar material de difusión (múltiples archivos)
-            if ($request->hasFile('material_difusion')) {
-                try {
-                    $materiales = [];
-                    foreach ($request->file('material_difusion') as $archivo) {
-                        $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $archivo->getClientOriginalExtension();
+            // Guardar materiales de difusión - NUEVO FORMATO
+            $materialesGuardados = [];
 
-                        Log::info("Subiendo material de difusión: {$nombreMaterial}");
+            // Verificar si hay archivos subidos
+            if ($request->hasFile('material_archivo')) {
+                Log::info('Archivos de materiales encontrados: ' . count($request->file('material_archivo')));
+
+                $tipos = $request->input('material_tipo', []);
+                $cantidades = $request->input('material_cantidad', []);
+                $archivos = $request->file('material_archivo', []);
+
+                foreach ($archivos as $index => $archivo) {
+                    if ($archivo && $archivo instanceof \Illuminate\Http\UploadedFile) {
+                        $tipo = $tipos[$index] ?? 'general';
+                        $cantidad = $cantidades[$index] ?? 1;
+                        $extension = $archivo->getClientOriginalExtension();
+                        $nombreMaterial = 'material_difusion_' . $comite->id . '_' . $index . '_' . time() . '.' . $extension;
 
                         // Crear directorio si no existe
                         $directorioMateriales = 'material_difusion/' . $comite->id;
@@ -178,16 +207,28 @@ class ComiteVigilanciaController extends Controller
                         $rutaMaterial = $archivo->storeAs('public/' . $directorioMateriales, $nombreMaterial);
                         $rutaMaterialDB = str_replace('public/', '', $rutaMaterial);
 
-                        $materiales[] = $rutaMaterialDB;
+                        $materialesGuardados[] = [
+                            'tipo' => $tipo,
+                            'cantidad' => (int) $cantidad,
+                            'ruta' => $rutaMaterialDB
+                        ];
+
+                        Log::info("Material guardado - Índice: {$index}, Tipo: {$tipo}, Cantidad: {$cantidad}, Ruta: {$rutaMaterialDB}");
+                    } else {
+                        Log::warning("Archivo en índice {$index} no es válido");
                     }
-
-                    // Guardar rutas como JSON en la base de datos
-                    $comite->update(['material_difusion' => json_encode($materiales)]);
-
-                    Log::info("Material de difusión guardado: " . count($materiales) . " archivos");
-                } catch (\Exception $e) {
-                    Log::error("Error al guardar material de difusión: " . $e->getMessage());
                 }
+
+                // Guardar materiales como JSON en la base de datos
+                if (!empty($materialesGuardados)) {
+                    $comite->update(['material_difusion' => $materialesGuardados]);
+                    Log::info("Total de materiales guardados: " . count($materialesGuardados));
+                } else {
+                    Log::warning('No se pudo guardar ningún material');
+                }
+            } else {
+                Log::info('No hay archivos de materiales en la request');
+                Log::info('Archivos disponibles:', array_keys($request->allFiles()));
             }
 
             // Guardar fotografías de la reunión
@@ -264,6 +305,19 @@ class ComiteVigilanciaController extends Controller
                         Log::error("Error al guardar archivo INE: " . $e->getMessage());
                     }
                 }
+            }
+
+            // Registrar en bitácora la creación con detalles de materiales
+            if (auth()->check()) {
+                $detallesMateriales = "";
+                if (!empty($materiales)) {
+                    $detallesMateriales = " - Materiales: " . count($materiales);
+                }
+                Bitacora::registrar(
+                    'Creación',
+                    'Comités de Vigilancia',
+                    "Comité creado: " . $comite->getNombreParaBitacora() . $detallesMateriales
+                );
             }
 
             Log::info('=== FIN STORE COMITÉ - ÉXITO ===');
@@ -369,6 +423,13 @@ class ComiteVigilanciaController extends Controller
      * @param  \App\ComiteVigilancia  $comite
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Actualiza un comité específico
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\ComiteVigilancia  $comite
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, ComiteVigilancia $comite)
     {
         // Verificar roles
@@ -401,15 +462,16 @@ class ComiteVigilanciaController extends Controller
             'id_localidad' => 'required|exists:localidades,id_localidad',
             'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120',
             'activo' => 'nullable|boolean',
+            // Validación para nuevos materiales
+            'nuevos_materiales' => 'nullable|array',
+            'nuevos_materiales.*.tipo' => 'required|string|max:100',
+            'nuevos_materiales.*.cantidad' => 'required|integer|min:1',
+            'nuevos_materiales.*.archivo' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
         ];
 
         // Validar archivos solo si se subieron
         if ($request->hasFile('lista_asistencia')) {
             $rules['lista_asistencia'] = 'file|mimes:pdf,doc,docx,xls,xlsx|max:5120';
-        }
-
-        if ($request->hasFile('material_difusion')) {
-            $rules['material_difusion.*'] = 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120';
         }
 
         if ($request->hasFile('fotografias')) {
@@ -440,52 +502,6 @@ class ComiteVigilanciaController extends Controller
             $updateData['fecha_validacion'] = null;
         }
 
-        // Solo validar si hay archivos nuevos
-        if ($request->hasFile('lista_asistencia')) {
-            $rules['lista_asistencia'] = 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:5120';
-        }
-
-        if ($request->hasFile('material_difusion')) {
-            $rules['material_difusion.*'] = 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120';
-            $rules['material_difusion'] = 'array';
-        }
-
-        if ($request->hasFile('fotografias')) {
-            $rules['fotografias.*'] = 'image|mimes:jpg,jpeg|max:2048';
-            $rules['fotografias'] = 'array';
-        }
-
-        $request->validate($rules);
-
-        Log::info('Validaciones pasadas correctamente'); // CORRECTO - solo un argumento
-
-        // Datos de actualización
-        $updateData = [
-            'dependencia_id' => $request->dependencia_id,
-            'programa_id' => $request->programa_id,
-            'nombre' => $request->nombre,
-            'id_estado' => $request->id_estado,
-            'id_municipio' => $request->id_municipio,
-            'id_localidad' => $request->id_localidad,
-            'activo' => $request->has('activo') ? true : false,
-        ];
-
-        // Si se edita un comité validado, marcarlo como no validado
-        if ($comite->estaValidado()) {
-            $updateData['validado'] = false;
-            $updateData['validado_por'] = null;
-            $updateData['fecha_validacion'] = null;
-
-            // Registrar en bitácora
-            if (auth()->check()) {
-                Bitacora::registrar(
-                    'Modificación',
-                    'Comités de Vigilancia',
-                    "Comité modificado - Validación removida: " . $comite->getNombreParaBitacora()
-                );
-            }
-        }
-
         // Guardar archivo de minuta si se subió
         if ($request->hasFile('archivo_minuta')) {
             try {
@@ -497,7 +513,7 @@ class ComiteVigilanciaController extends Controller
                 $minuta = $request->file('archivo_minuta');
                 $nombreMinuta = 'minuta_' . $comite->id . '_' . time() . '.pdf';
 
-                Log::info('Actualizando minuta: ' . $nombreMinuta); // CORRECTO - solo un argumento
+                Log::info('Actualizando minuta: ' . $nombreMinuta);
 
                 // Crear directorio si no existe
                 $directorioMinutas = 'minutas_comites';
@@ -512,9 +528,9 @@ class ComiteVigilanciaController extends Controller
                 // Agregar ruta de minuta a los datos de actualización
                 $updateData['archivo_minuta'] = $rutaMinutaDB;
 
-                Log::info('Minuta actualizada en: ' . $rutaMinutaDB); // CORRECTO - solo un argumento
+                Log::info('Minuta actualizada en: ' . $rutaMinutaDB);
             } catch (\Exception $e) {
-                Log::error('Error al actualizar minuta: ' . $e->getMessage()); // CORRECTO - solo un argumento
+                Log::error('Error al actualizar minuta: ' . $e->getMessage());
             }
         }
 
@@ -529,7 +545,7 @@ class ComiteVigilanciaController extends Controller
                 $listaAsistencia = $request->file('lista_asistencia');
                 $nombreLista = 'lista_asistencia_' . $comite->id . '_' . time() . '.' . $listaAsistencia->getClientOriginalExtension();
 
-                Log::info('Actualizando lista de asistencia: ' . $nombreLista); // CORRECTO - solo un argumento
+                Log::info('Actualizando lista de asistencia: ' . $nombreLista);
 
                 // Crear directorio si no existe
                 $directorioListas = 'listas_asistencia';
@@ -544,56 +560,73 @@ class ComiteVigilanciaController extends Controller
                 // Agregar ruta a los datos de actualización
                 $updateData['lista_asistencia'] = $rutaListaDB;
 
-                Log::info('Lista de asistencia actualizada en: ' . $rutaListaDB); // CORRECTO - solo un argumento
+                Log::info('Lista de asistencia actualizada en: ' . $rutaListaDB);
             } catch (\Exception $e) {
-                Log::error('Error al actualizar lista de asistencia: ' . $e->getMessage()); // CORRECTO - solo un argumento
+                Log::error('Error al actualizar lista de asistencia: ' . $e->getMessage());
             }
         }
 
-        // Guardar material de difusión (múltiples archivos)
-        if ($request->hasFile('material_difusion')) {
+        // Agregar nuevos materiales de difusión
+        if ($request->has('nuevos_materiales') && is_array($request->nuevos_materiales)) {
             try {
-                // Obtener material existente
-                $materiales = $comite->material_difusion ?? [];
-
-                foreach ($request->file('material_difusion') as $archivo) {
-                    $extension = $archivo->getClientOriginalExtension();
-                    $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $extension;
-
-                    Log::info('Agregando material de difusión: ' . $nombreMaterial); // CORRECTO - solo un argumento
-
-                    // Crear directorio si no existe
-                    $directorioMateriales = 'material_difusion/' . $comite->id;
-                    if (!Storage::disk('public')->exists($directorioMateriales)) {
-                        Storage::disk('public')->makeDirectory($directorioMateriales);
-                    }
-
-                    // Guardar archivo
-                    $rutaMaterial = $archivo->storeAs('public/' . $directorioMateriales, $nombreMaterial);
-                    $rutaMaterialDB = str_replace('public/', '', $rutaMaterial);
-
-                    $materiales[] = $rutaMaterialDB;
+                // Obtener materiales existentes
+                $materiales = $comite->material_difusion;
+                if (!is_array($materiales)) {
+                    $materiales = [];
                 }
 
-                // Agregar rutas a los datos de actualización
-                $updateData['material_difusion'] = json_encode($materiales);
+                $materialesAgregados = 0;
 
-                Log::info('Material de difusión actualizado. Total: ' . count($materiales) . ' archivos'); // CORRECTO - solo un argumento
+                foreach ($request->nuevos_materiales as $materialData) {
+                    if (isset($materialData['archivo']) && $materialData['archivo'] instanceof \Illuminate\Http\UploadedFile) {
+                        $archivo = $materialData['archivo'];
+                        $extension = $archivo->getClientOriginalExtension();
+                        $nombreMaterial = 'material_difusion_' . $comite->id . '_' . uniqid() . '.' . $extension;
+
+                        Log::info('Agregando material de difusión: ' . $nombreMaterial . ' - Tipo: ' . $materialData['tipo'] . ' - Cantidad: ' . $materialData['cantidad']);
+
+                        // Crear directorio si no existe
+                        $directorioMateriales = 'material_difusion/' . $comite->id;
+                        if (!Storage::disk('public')->exists($directorioMateriales)) {
+                            Storage::disk('public')->makeDirectory($directorioMateriales);
+                        }
+
+                        // Guardar archivo
+                        $rutaMaterial = $archivo->storeAs('public/' . $directorioMateriales, $nombreMaterial);
+                        $rutaMaterialDB = str_replace('public/', '', $rutaMaterial);
+
+                        $materiales[] = [
+                            'tipo' => $materialData['tipo'],
+                            'cantidad' => (int) $materialData['cantidad'],
+                            'ruta' => $rutaMaterialDB
+                        ];
+
+                        $materialesAgregados++;
+                    }
+                }
+
+                // Actualizar materiales en BD
+                $updateData['material_difusion'] = $materiales;
+
+                Log::info('Material de difusión actualizado. Se agregaron ' . $materialesAgregados . ' nuevos archivos. Total: ' . count($materiales));
             } catch (\Exception $e) {
-                Log::error('Error al actualizar material de difusión: ' . $e->getMessage()); // CORRECTO - solo un argumento
+                Log::error('Error al actualizar material de difusión: ' . $e->getMessage());
             }
         }
 
-        // Guardar fotografías de la reunión
+        // Guardar fotografías de la reunión (agregar nuevas)
         if ($request->hasFile('fotografias')) {
             try {
                 // Obtener fotografías existentes
-                $fotografias = $comite->fotografias_reunion ?? [];
+                $fotografias = $comite->fotografias_reunion;
+                if (!is_array($fotografias)) {
+                    $fotografias = [];
+                }
 
                 foreach ($request->file('fotografias') as $foto) {
                     $nombreFoto = 'foto_' . $comite->id . '_' . uniqid() . '_' . time() . '.jpg';
 
-                    Log::info('Agregando fotografía: ' . $nombreFoto); // CORRECTO - solo un argumento
+                    Log::info('Agregando fotografía: ' . $nombreFoto);
 
                     // Crear directorio si no existe
                     $directorioFotos = 'fotografias_reunion/' . $comite->id;
@@ -608,12 +641,12 @@ class ComiteVigilanciaController extends Controller
                     $fotografias[] = $rutaFotoDB;
                 }
 
-                // Agregar rutas a los datos de actualización
+                // Actualizar fotografías en BD
                 $updateData['fotografias_reunion'] = json_encode($fotografias);
 
-                Log::info('Fotografías actualizadas. Total: ' . count($fotografias) . ' fotos'); // CORRECTO - solo un argumento
+                Log::info('Fotografías actualizadas. Total: ' . count($fotografias) . ' fotos');
             } catch (\Exception $e) {
-                Log::error('Error al actualizar fotografías: ' . $e->getMessage()); // CORRECTO - solo un argumento
+                Log::error('Error al actualizar fotografías: ' . $e->getMessage());
             }
         }
 
@@ -623,6 +656,15 @@ class ComiteVigilanciaController extends Controller
         // Refrescar la instancia para asegurar datos actualizados
         $comite->refresh();
 
+        // Registrar en bitácora si se agregaron materiales
+        if ($request->has('nuevos_materiales') && !empty(array_filter($request->nuevos_materiales))) {
+            Bitacora::registrar(
+                'Actualización',
+                'Comités de Vigilancia',
+                "Se agregaron nuevos materiales de difusión al comité: " . $comite->getNombreParaBitacora()
+            );
+        }
+
         Log::info('Comité actualizado exitosamente. Validado: ' . ($comite->estaValidado() ? 'SÍ' : 'NO'));
 
         return redirect()->route('comites.index')
@@ -631,7 +673,7 @@ class ComiteVigilanciaController extends Controller
 
 
     /**
-     * Eliminar archivo de material de difusión
+     * Eliminar material de difusión específico por índice
      */
     public function eliminarMaterialDifusion(Request $request, ComiteVigilancia $comite)
     {
@@ -648,47 +690,50 @@ class ComiteVigilanciaController extends Controller
         }
 
         $request->validate([
-            'archivo' => 'required|string'
+            'indice' => 'required|integer|min:0'
         ]);
 
-        $archivoRuta = $request->archivo;
+        $indice = $request->indice;
 
         try {
-            Log::info('Eliminando material de difusión: ' . $archivoRuta);
+            Log::info('Eliminando material de difusión con índice: ' . $indice);
 
-            // Obtener array actual
             $materiales = $comite->material_difusion;
 
-            if (!is_array($materiales)) {
-                $materiales = [];
+            if (!is_array($materiales) || !isset($materiales[$indice])) {
+                return response()->json(['success' => false, 'message' => 'Material no encontrado'], 404);
             }
 
-            // Buscar y eliminar el archivo del array
-            $indice = array_search($archivoRuta, $materiales);
-            if ($indice !== false) {
-                // Eliminar archivo físico
-                if (Storage::disk('public')->exists($archivoRuta)) {
-                    Storage::disk('public')->delete($archivoRuta);
-                    Log::info('Archivo físico eliminado');
-                }
+            $material = $materiales[$indice];
 
-                // Eliminar del array
-                unset($materiales[$indice]);
-                $materiales = array_values($materiales); // Reindexar
-
-                // Actualizar en base de datos
-                $comite->update(['material_difusion' => !empty($materiales) ? json_encode($materiales) : null]);
-
-                Log::info('Material actualizado en BD');
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Archivo eliminado correctamente',
-                    'count' => count($materiales)
-                ]);
+            // Eliminar archivo físico
+            if (isset($material['ruta']) && Storage::disk('public')->exists($material['ruta'])) {
+                Storage::disk('public')->delete($material['ruta']);
+                Log::info('Archivo físico eliminado: ' . $material['ruta']);
             }
 
-            return response()->json(['success' => false, 'message' => 'Archivo no encontrado'], 404);
+            // Eliminar del array
+            unset($materiales[$indice]);
+            $materiales = array_values($materiales); // Reindexar
+
+            // Actualizar en base de datos
+            $comite->material_difusion = $materiales;
+            $comite->save();
+
+            // Registrar en bitácora
+            Bitacora::registrar(
+                'Eliminación',
+                'Comités de Vigilancia',
+                "Material de difusión eliminado del comité: " . $comite->getNombreParaBitacora() . " - Tipo: " . ($material['tipo'] ?? 'N/A')
+            );
+
+            Log::info('Material actualizado en BD. Restantes: ' . count($materiales));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Material eliminado correctamente',
+                'count' => count($materiales)
+            ]);
         } catch (\Exception $e) {
             Log::error("Error al eliminar material de difusión: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al eliminar archivo'], 500);

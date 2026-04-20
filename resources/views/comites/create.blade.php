@@ -11,8 +11,8 @@
                     <h4 class="mb-0">Crear Nuevo Comité de Vigilancia</h4>
                 </div>
                 <div class="card-body">
-                    <!-- AGREGAR enctype="multipart/form-data" -->
-                    <form action="{{ route('comites.store') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('comites.store') }}" method="POST" enctype="multipart/form-data"
+                        id="form-crear-comite">
                         @csrf
 
                         <div class="row">
@@ -105,7 +105,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="archivo_minuta" class="form-label">Archivo de Minuta o Acta
-                                        constitutiva(PDF)</label>
+                                        constitutiva (PDF)</label>
                                     <input type="file" class="form-control" id="archivo_minuta" name="archivo_minuta"
                                         accept=".pdf">
                                     <small class="text-muted">Suba el archivo PDF de la minuta de constitución del
@@ -134,23 +134,52 @@
                             </div>
                         </div>
 
+                        <!-- SECCIÓN MATERIAL DE DIFUSIÓN -->
                         <h5 class="mt-4 text-tinto">Material de Difusión</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="material_difusion" class="form-label">Archivos de Material de
-                                        Difusión</label>
-                                    <input type="file" class="form-control" id="material_difusion"
-                                        name="material_difusion[]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                                        multiple>
-                                    <small class="text-muted">Puede seleccionar múltiples archivos (PDF, Word, Excel,
-                                        JPG o PNG, máx. 5MB cada uno)</small>
-                                    @error('material_difusion.*')
-                                    <div class="text-danger">{{ $message }}</div>
-                                    @enderror
+                        <p class="text-muted small mb-3">Registre los materiales entregados o difundidos durante la
+                            reunión</p>
+
+                        <div id="materiales-container">
+                            <div class="material-row card mb-3 p-3" data-index="0">
+                                <div class="row align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Tipo de Material</label>
+                                        <select class="form-select" name="material_tipo[0]" required>
+                                            <option value="">Seleccionar tipo</option>
+                                            <option value="cartel">Cartel</option>
+                                            <option value="folleto">Folleto</option>
+                                            <option value="tríptico">Tríptico</option>
+                                            <option value="manual">Manual</option>
+                                            <option value="guía">Guía</option>
+                                            <option value="presentación">Presentación</option>
+                                            <option value="video">Video</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Cantidad</label>
+                                        <input type="number" class="form-control" name="material_cantidad[0]"
+                                            placeholder="Cantidad" min="1" value="1" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Archivo</label>
+                                        <input type="file" class="form-control material-archivo"
+                                            name="material_archivo[0]"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+                                        <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx. 5MB)</small>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button"
+                                            class="btn btn-danger btn-sm remove-material mt-4">Eliminar</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <button type="button" id="add-material" class="btn btn-secondary btn-sm mb-3">
+                            <i class="fas fa-plus"></i> Agregar Material
+                        </button>
+                        <div id="material-preview-container" class="mt-3"></div>
 
                         <h5 class="mt-4 text-tinto">Fotografías de la Reunión</h5>
                         <div class="row">
@@ -211,9 +240,31 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Elementos del comité
-        let elementoCount = 1;
-        document.getElementById('add-elemento').addEventListener('click', function() {
+    console.log('=== INICIALIZANDO FORMULARIO CREATE ===');
+
+    // ===== VARIABLES GLOBALES =====
+    let elementoCount = 1;
+    let materialCount = 1;
+
+    // ===== FUNCIÓN PARA OBTENER CSRF TOKEN =====
+    function getCsrfToken() {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            return metaTag.getAttribute('content');
+        }
+        const csrfInput = document.querySelector('input[name="_token"]');
+        if (csrfInput) {
+            return csrfInput.value;
+        }
+        console.warn('Token CSRF no encontrado');
+        return null;
+    }
+
+    // ===== ELEMENTOS DEL COMITÉ =====
+    const addElementoBtn = document.getElementById('add-elemento');
+    if (addElementoBtn) {
+        addElementoBtn.addEventListener('click', function() {
+            console.log('Agregando elemento del comité');
             const container = document.getElementById('elementos-container');
             const newRow = document.createElement('div');
             newRow.className = 'elemento-row row mb-3';
@@ -235,40 +286,150 @@
             container.appendChild(newRow);
             elementoCount++;
         });
+    }
 
-        document.addEventListener('click', function(e) {
-            if (e.target && e.target.classList.contains('remove-elemento')) {
-                if (document.querySelectorAll('.elemento-row').length > 1) {
-                    e.target.closest('.elemento-row').remove();
-                } else {
-                    alert('Debe haber al menos un elemento en el comité.');
-                }
+    // Eliminar elemento del comité
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('remove-elemento')) {
+            const rows = document.querySelectorAll('.elemento-row');
+            if (rows.length > 1) {
+                e.target.closest('.elemento-row').remove();
+                console.log('Elemento eliminado');
+            } else {
+                alert('Debe haber al menos un elemento en el comité.');
+            }
+        }
+    });
+
+    // ===== MATERIALES DE DIFUSIÓN =====
+    const addMaterialBtn = document.getElementById('add-material');
+    if (addMaterialBtn) {
+        console.log('Botón add-material encontrado');
+
+        addMaterialBtn.addEventListener('click', function() {
+            console.log('Click en Agregar Material - materialCount:', materialCount);
+
+            const container = document.getElementById('materiales-container');
+            if (!container) {
+                console.error('Contenedor materiales-container no encontrado');
+                return;
+            }
+
+            const newRow = document.createElement('div');
+            newRow.className = 'material-row card mb-3 p-3';
+            newRow.setAttribute('data-index', materialCount);
+            newRow.innerHTML = `
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Tipo de Material</label>
+                        <select class="form-select" name="material_tipo[${materialCount}]" required>
+                            <option value="">Seleccionar tipo</option>
+                            <option value="cartel">Cartel</option>
+                            <option value="folleto">Folleto</option>
+                            <option value="tríptico">Tríptico</option>
+                            <option value="manual">Manual</option>
+                            <option value="guía">Guía</option>
+                            <option value="presentación">Presentación</option>
+                            <option value="video">Video</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Cantidad</label>
+                        <input type="number" class="form-control" name="material_cantidad[${materialCount}]" placeholder="Cantidad" min="1" value="1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Archivo</label>
+                        <input type="file" class="form-control material-archivo" name="material_archivo[${materialCount}]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+                        <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx. 5MB)</small>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm remove-material mt-4">Eliminar</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newRow);
+            materialCount++;
+            console.log('Material agregado - nuevo materialCount:', materialCount);
+
+            // Actualizar vista previa
+            updateMaterialPreview();
+        });
+    } else {
+        console.error('Botón add-material NO encontrado');
+    }
+
+    // Función para actualizar vista previa de materiales
+    function updateMaterialPreview() {
+        const container = document.getElementById('material-preview-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        const materialRows = document.querySelectorAll('.material-row');
+        let hasFiles = false;
+
+        materialRows.forEach((row, idx) => {
+            const fileInput = row.querySelector('.material-archivo');
+            const tipoSelect = row.querySelector('select[name^="material_tipo"]');
+            const cantidadInput = row.querySelector('input[name^="material_cantidad"]');
+
+            if (fileInput && fileInput.files.length > 0) {
+                hasFiles = true;
+                const file = fileInput.files[0];
+                const tipoTexto = tipoSelect ? tipoSelect.options[tipoSelect.selectedIndex]?.text : 'N/A';
+                const cantidadValor = cantidadInput ? cantidadInput.value : '1';
+
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'alert alert-info alert-dismissible fade show';
+                previewDiv.innerHTML = `
+                    <strong>Material ${idx + 1}:</strong>
+                    Tipo: ${tipoTexto} |
+                    Cantidad: ${cantidadValor} |
+                    Archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                    <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                container.appendChild(previewDiv);
             }
         });
 
-        // Selects dependientes (tu código existente)
-        const estadoSelect = document.getElementById('id_estado');
-        const municipioSelect = document.getElementById('id_municipio');
-        const localidadSelect = document.getElementById('id_localidad');
-
-        // Obtener token CSRF de una forma alternativa
-        function getCsrfToken() {
-            const metaTag = document.querySelector('meta[name="csrf-token"]');
-            if (metaTag) {
-                return metaTag.getAttribute('content');
-            }
-            const csrfInput = document.querySelector('input[name="_token"]');
-            if (csrfInput) {
-                return csrfInput.value;
-            }
-            const tokenInputs = document.querySelectorAll('[name="_token"]');
-            if (tokenInputs.length > 0) {
-                return tokenInputs[0].value;
-            }
-            console.warn('Token CSRF no encontrado');
-            return null;
+        if (!hasFiles && materialRows.length > 0) {
+            container.innerHTML = '<div class="alert alert-secondary">No se han seleccionado archivos para material de difusión</div>';
         }
+    }
 
+    // Escuchar cambios en los archivos de materiales
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('material-archivo')) {
+            console.log('Archivo seleccionado:', e.target.files[0]?.name);
+            updateMaterialPreview();
+        }
+    });
+
+    // Eliminar material
+    document.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target && (target.classList.contains('remove-material') || target.closest('.remove-material'))) {
+            const btn = target.classList.contains('remove-material') ? target : target.closest('.remove-material');
+            const materialRow = btn.closest('.material-row');
+            const rows = document.querySelectorAll('.material-row');
+
+            if (rows.length > 1) {
+                materialRow.remove();
+                console.log('Material eliminado');
+                updateMaterialPreview();
+            } else {
+                alert('Debe haber al menos un material o puede dejar el campo vacío.');
+            }
+        }
+    });
+
+    // ===== SELECTORES DEPENDIENTES =====
+    const estadoSelect = document.getElementById('id_estado');
+    const municipioSelect = document.getElementById('id_municipio');
+    const localidadSelect = document.getElementById('id_localidad');
+
+    if (estadoSelect) {
         estadoSelect.addEventListener('change', function() {
             const estadoId = this.value;
             municipioSelect.innerHTML = '<option value="">Cargando municipios...</option>';
@@ -308,15 +469,14 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    municipioSelect.innerHTML = '<option value="">Error al cargar municipios: ' + error.message + '</option>';
+                    municipioSelect.innerHTML = '<option value="">Error al cargar municipios</option>';
                     municipioSelect.disabled = false;
                 });
-            } else {
-                municipioSelect.innerHTML = '<option value="">Primero selecciona un Estado</option>';
-                municipioSelect.disabled = true;
             }
         });
+    }
 
+    if (municipioSelect) {
         municipioSelect.addEventListener('change', function() {
             const municipioId = this.value;
             localidadSelect.innerHTML = '<option value="">Cargando localidades...</option>';
@@ -354,58 +514,73 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    localidadSelect.innerHTML = '<option value="">Error al cargar localidades: ' + error.message + '</option>';
+                    localidadSelect.innerHTML = '<option value="">Error al cargar localidades</option>';
                     localidadSelect.disabled = false;
                 });
-            } else {
-                localidadSelect.innerHTML = '<option value="">Primero selecciona un Municipio</option>';
-                localidadSelect.disabled = true;
             }
         });
-    });
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const materialDifusionInput = document.getElementById('material_difusion');
+    // ===== VISTA PREVIA PARA FOTOGRAFÍAS =====
     const fotografiasInput = document.getElementById('fotografias');
     const previewContainer = document.getElementById('preview-container');
 
-    function showPreview(input, container) {
+    function showImagePreview(input, container) {
+        if (!container) return;
         container.innerHTML = '';
 
-        if (input.files.length > 0) {
+        if (input && input.files && input.files.length > 0) {
             const previewTitle = document.createElement('h6');
-            previewTitle.textContent = 'Archivos seleccionados:';
+            previewTitle.textContent = 'Fotografías seleccionadas:';
             container.appendChild(previewTitle);
 
-            const fileList = document.createElement('ul');
-            fileList.className = 'list-group mt-2';
+            const row = document.createElement('div');
+            row.className = 'row';
 
             for (let i = 0; i < input.files.length; i++) {
                 const file = input.files[i];
-                const listItem = document.createElement('li');
-                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-                listItem.textContent = `${i + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                const col = document.createElement('div');
+                col.className = 'col-md-3 mb-3';
 
-                // Mostrar tipo de archivo
-                const badge = document.createElement('span');
-                badge.className = 'badge bg-info';
-                badge.textContent = file.type.split('/')[1].toUpperCase();
-                listItem.appendChild(badge);
+                const card = document.createElement('div');
+                card.className = 'card';
 
-                fileList.appendChild(listItem);
+                const img = document.createElement('img');
+                img.className = 'card-img-top';
+                img.style.height = '120px';
+                img.style.objectFit = 'cover';
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+
+                const body = document.createElement('div');
+                body.className = 'card-body p-2';
+                body.innerHTML = `<small class="text-muted d-block text-truncate">${file.name}</small>`;
+
+                card.appendChild(img);
+                card.appendChild(body);
+                col.appendChild(card);
+                row.appendChild(col);
             }
 
-            container.appendChild(fileList);
+            container.appendChild(row);
         }
     }
 
-    materialDifusionInput.addEventListener('change', function() {
-        showPreview(this, previewContainer);
-    });
+    if (fotografiasInput) {
+        fotografiasInput.addEventListener('change', function() {
+            showImagePreview(this, previewContainer);
+        });
+    }
 
-    fotografiasInput.addEventListener('change', function() {
-        showPreview(this, previewContainer);
-    });
+    // Inicializar vista previa de materiales
+    updateMaterialPreview();
+
+    console.log('=== FORMULARIO INICIALIZADO CORRECTAMENTE ===');
 });
 </script>
+
 @endsection

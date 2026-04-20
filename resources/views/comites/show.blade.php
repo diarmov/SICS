@@ -120,16 +120,37 @@
                                     </span>
                                     @endif
                                 </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    Material de Difusión
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Material de Difusión</span>
+                                        @if(count($comite->material_difusion) > 0)
+                                        <span class="badge bg-success rounded-pill">
+                                            {{ count($comite->material_difusion) }} material(es)
+                                        </span>
+                                        @else
+                                        <span class="badge bg-warning rounded-pill">
+                                            <i class="fas fa-exclamation"></i> Opcional
+                                        </span>
+                                        @endif
+                                    </div>
                                     @if(count($comite->material_difusion) > 0)
-                                    <span class="badge bg-success rounded-pill">
-                                        <i class="fas fa-check"></i> {{ count($comite->material_difusion) }} archivo(s)
-                                    </span>
-                                    @else
-                                    <span class="badge bg-warning rounded-pill">
-                                        <i class="fas fa-exclamation"></i> Opcional
-                                    </span>
+                                    <div class="mt-2">
+                                        @foreach($comite->material_difusion as $material)
+                                        <div class="small mb-2 p-2 bg-light rounded">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ ucfirst($material['tipo'] ?? 'General') }}</strong>
+                                                    <span class="badge bg-secondary ms-2">Cantidad: {{
+                                                        $material['cantidad'] ?? 1 }}</span>
+                                                </div>
+                                                <a href="{{ Storage::url($material['ruta']) }}" target="_blank"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download"></i> Ver archivo
+                                                </a>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
                                     @endif
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center">

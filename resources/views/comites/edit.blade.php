@@ -273,43 +273,65 @@
 
                         <!-- Material de Difusión -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="mb-3">
-                                    <label for="material_difusion" class="form-label">Material de Difusión</label>
+                                    <label class="form-label fw-bold">Material de Difusión</label>
 
-                                    @if(count($comite->material_difusion) > 0)
+                                    @if(is_array($comite->material_difusion) && count($comite->material_difusion) > 0)
                                     <div class="mb-3">
-                                        <h6 class="text-muted">Archivos actuales:</h6>
+                                        <h6 class="text-muted">Materiales actuales:</h6>
                                         <div class="list-group" id="material-list">
                                             @foreach($comite->material_difusion as $index => $material)
+                                            @php
+                                            // Asegurarse de que $material es un array y tiene la clave 'ruta'
+                                            $rutaArchivo = is_array($material) && isset($material['ruta']) ?
+                                            $material['ruta'] : '';
+                                            $tipoMaterial = is_array($material) && isset($material['tipo']) ?
+                                            $material['tipo'] : 'general';
+                                            $cantidadMaterial = is_array($material) && isset($material['cantidad']) ?
+                                            $material['cantidad'] : 1;
+                                            $extension = $rutaArchivo ? pathinfo($rutaArchivo, PATHINFO_EXTENSION) : '';
+                                            $icono = 'file';
+                                            if ($extension) {
+                                            $icono = in_array(strtolower($extension), ['pdf']) ? 'file-pdf text-danger'
+                                            :
+                                            (in_array(strtolower($extension), ['doc', 'docx']) ? 'file-word
+                                            text-primary' :
+                                            (in_array(strtolower($extension), ['xls', 'xlsx']) ? 'file-excel
+                                            text-success' :
+                                            (in_array(strtolower($extension), ['jpg', 'jpeg', 'png']) ? 'file-image
+                                            text-info' : 'file')));
+                                            }
+                                            @endphp
                                             <div class="list-group-item d-flex justify-content-between align-items-center"
                                                 id="material-{{ $index }}">
                                                 <div>
-                                                    @php
-                                                    $extension = pathinfo($material, PATHINFO_EXTENSION);
-                                                    $icono = in_array(strtolower($extension), ['pdf']) ? 'file-pdf
-                                                    text-danger' :
-                                                    (in_array(strtolower($extension), ['doc', 'docx']) ? 'file-word
-                                                    text-primary' :
-                                                    (in_array(strtolower($extension), ['xls', 'xlsx']) ? 'file-excel
-                                                    text-success' :
-                                                    'file-image text-info'));
-                                                    @endphp
+                                                    @if($icono != 'file')
                                                     <i
-                                                        class="fas fa-{{ explode(' ', $icono)[0] }} {{ explode(' ', $icono)[1] }} me-2"></i>
-                                                    <a href="{{ Storage::url($material) }}" target="_blank"
-                                                        class="text-decoration-none">
-                                                        {{ basename($material) }}
+                                                        class="fas fa-{{ explode(' ', $icono)[0] }} {{ explode(' ', $icono)[1] ?? '' }} me-2"></i>
+                                                    @else
+                                                    <i class="fas fa-file me-2"></i>
+                                                    @endif
+                                                    <strong>{{ ucfirst($tipoMaterial) }}</strong>
+                                                    <span class="badge bg-secondary ms-2">Cantidad: {{ $cantidadMaterial
+                                                        }}</span>
+                                                    @if($rutaArchivo)
+                                                    <a href="{{ Storage::url($rutaArchivo) }}" target="_blank"
+                                                        class="text-decoration-none ms-2">
+                                                        {{ basename($rutaArchivo) }}
                                                     </a>
+                                                    @endif
                                                 </div>
                                                 <div>
-                                                    <a href="{{ Storage::url($material) }}" download
+                                                    @if($rutaArchivo)
+                                                    <a href="{{ Storage::url($rutaArchivo) }}" download
                                                         class="btn btn-sm btn-outline-primary me-1">
                                                         <i class="fas fa-download"></i>
                                                     </a>
+                                                    @endif
                                                     <button type="button"
                                                         class="btn btn-sm btn-outline-danger eliminar-material"
-                                                        data-ruta="{{ $material }}" data-comite="{{ $comite->id }}">
+                                                        data-indice="{{ $index }}" data-comite="{{ $comite->id }}">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -319,15 +341,59 @@
                                     </div>
                                     @endif
 
-                                    <input type="file"
-                                        class="form-control @error('material_difusion.*') is-invalid @enderror"
-                                        id="material_difusion" name="material_difusion[]"
-                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" multiple>
-                                    <small class="text-muted">
-                                        Puede agregar más archivos (PDF, Word, Excel, JPG, PNG, máx. 5MB cada uno)
-                                    </small>
-                                    @error('material_difusion.*')
-                                    <div class="text-danger">{{ $message }}</div>
+                                    <!-- Formulario para agregar nuevos materiales -->
+                                    <div class="card border-info mt-3">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Agregar Nuevo
+                                                Material de Difusión</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="nuevos-materiales-container">
+                                                <div class="nuevo-material-row row mb-3 align-items-end">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Tipo de Material</label>
+                                                        <select class="form-select" name="nuevos_materiales[0][tipo]">
+                                                            <option value="">Seleccionar tipo</option>
+                                                            <option value="cartel">Cartel</option>
+                                                            <option value="folleto">Folleto</option>
+                                                            <option value="tríptico">Tríptico</option>
+                                                            <option value="manual">Manual</option>
+                                                            <option value="guía">Guía</option>
+                                                            <option value="presentación">Presentación</option>
+                                                            <option value="video">Video</option>
+                                                            <option value="otro">Otro</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label fw-bold">Cantidad</label>
+                                                        <input type="number" class="form-control"
+                                                            name="nuevos_materiales[0][cantidad]" placeholder="Cantidad"
+                                                            min="1" value="1">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Archivo</label>
+                                                        <input type="file" class="form-control"
+                                                            name="nuevos_materiales[0][archivo]"
+                                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                                                        <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx.
+                                                            5MB)</small>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="button"
+                                                            class="btn btn-danger btn-sm remove-nuevo-material mt-4">Eliminar</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button type="button" id="add-nuevo-material"
+                                                class="btn btn-secondary btn-sm mt-2">
+                                                <i class="fas fa-plus"></i> Agregar otro material
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    @error('nuevos_materiales.*')
+                                    <div class="text-danger mt-2">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -866,6 +932,109 @@
                 crearVistaPrevia(this, previewContainer, true);
             });
         }
+        // ===== NUEVOS MATERIALES DE DIFUSIÓN (AGREGAR) =====
+let nuevoMaterialCount = 1;
+
+document.getElementById('add-nuevo-material').addEventListener('click', function() {
+    const container = document.getElementById('nuevos-materiales-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'nuevo-material-row row mb-3 align-items-end';
+    newRow.innerHTML = `
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Tipo de Material</label>
+            <select class="form-select" name="nuevos_materiales[${nuevoMaterialCount}][tipo]">
+                <option value="">Seleccionar tipo</option>
+                <option value="cartel">Cartel</option>
+                <option value="folleto">Folleto</option>
+                <option value="tríptico">Tríptico</option>
+                <option value="manual">Manual</option>
+                <option value="guía">Guía</option>
+                <option value="presentación">Presentación</option>
+                <option value="video">Video</option>
+                <option value="otro">Otro</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Cantidad</label>
+            <input type="number" class="form-control" name="nuevos_materiales[${nuevoMaterialCount}][cantidad]" placeholder="Cantidad" min="1" value="1">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Archivo</label>
+            <input type="file" class="form-control" name="nuevos_materiales[${nuevoMaterialCount}][archivo]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+            <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx. 5MB)</small>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-danger btn-sm remove-nuevo-material mt-4">Eliminar</button>
+        </div>
+    `;
+    container.appendChild(newRow);
+    nuevoMaterialCount++;
+});
+
+// Eliminar fila de nuevo material
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.classList.contains('remove-nuevo-material') || e.target.closest('.remove-nuevo-material'))) {
+        const btn = e.target.classList.contains('remove-nuevo-material') ? e.target : e.target.closest('.remove-nuevo-material');
+        const row = btn.closest('.nuevo-material-row');
+        if (document.querySelectorAll('.nuevo-material-row').length > 1) {
+            row.remove();
+        } else {
+            // Si es la única fila, limpiar los campos en lugar de eliminar
+            row.querySelectorAll('input, select').forEach(input => {
+                if (input.type === 'file') {
+                    input.value = '';
+                } else if (input.type === 'number') {
+                    input.value = '1';
+                } else if (input.tagName === 'SELECT') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+            });
+        }
+    }
+});
+
+// ===== ELIMINAR MATERIAL EXISTENTE (por índice) =====
+document.querySelectorAll('.eliminar-material').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const indice = this.dataset.indice;
+        const comiteId = this.dataset.comite;
+
+        if (confirm('¿Eliminar este material de difusión?')) {
+            fetch(`/comites/${comiteId}/eliminar-material`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ indice: indice })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const elemento = document.getElementById(`material-${indice}`);
+                    if (elemento) elemento.remove();
+
+                    const materialList = document.getElementById('material-list');
+                    if (materialList && materialList.children.length === 0) {
+                        materialList.innerHTML = '<div class="alert alert-info">No hay materiales de difusión</div>';
+                    }
+
+                    alert('Material eliminado correctamente');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al eliminar el material');
+            });
+        }
+    });
+});
 
     });
 

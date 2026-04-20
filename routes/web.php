@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/comites/{comite}/edit', [ComiteVigilanciaController::class, 'edit'])->name('comites.edit');
     Route::put('/comites/{comite}', [ComiteVigilanciaController::class, 'update'])->name('comites.update');
     Route::delete('/comites/{comite}', [ComiteVigilanciaController::class, 'destroy'])->name('comites.destroy');
+    Route::post('/comites/{comite}/eliminar-material', [ComiteVigilanciaController::class, 'eliminarMaterialDifusion'])->name('comites.eliminar-material');
 
     // Elementos del comité
     Route::post('/comites/{comite}/elementos', [ComiteVigilanciaController::class, 'addElemento'])->name('comites.add-elemento');

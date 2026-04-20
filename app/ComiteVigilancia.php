@@ -240,30 +240,67 @@ class ComiteVigilancia extends Model
 
     /**
      * Accessor para decodificar el JSON de material de difusión
-     * Convierte el JSON almacenado en un array
+     * Convierte el JSON almacenado en un array de objetos con tipo, cantidad y ruta
      *
      * @param mixed $value Valor del JSON en BD
      * @return array
      */
     public function getMaterialDifusionAttribute($value)
     {
-        return $value ? json_decode($value, true) : [];
+        $materiales = $value ? json_decode($value, true) : [];
+
+        // Si el array es asociativo y tiene las claves 'tipo', 'cantidad', 'ruta'
+        // entonces ya está en el nuevo formato
+        if (!empty($materiales) && isset($materiales[0]['tipo'])) {
+            return $materiales;
+        }
+
+        // Si el array es simple (solo rutas), convertirlo al nuevo formato
+        if (!empty($materiales) && !isset($materiales[0]['tipo'])) {
+            $nuevoFormato = [];
+            foreach ($materiales as $ruta) {
+                $nuevoFormato[] = [
+                    'tipo' => 'general',
+                    'cantidad' => 1,
+                    'ruta' => $ruta
+                ];
+            }
+            return $nuevoFormato;
+        }
+
+        return [];
     }
 
     /**
-     * Obtiene las URLs del material de difusión
+     * Mutator para guardar material de difusión
+     * Asegura que se guarde en el formato correcto
+     *
+     * @param mixed $value
+     */
+    public function setMaterialDifusionAttribute($value)
+    {
+        if (is_array($value)) {
+            $this->attributes['material_difusion'] = json_encode($value);
+        } else {
+            $this->attributes['material_difusion'] = $value;
+        }
+    }
+
+    /**
+     * Obtiene las URLs y metadatos del material de difusión
      *
      * @return array
      */
     public function getMaterialDifusionUrlsAttribute()
     {
-        $urls = [];
-        foreach ($this->material_difusion as $ruta) {
-            if (Storage::disk('public')->exists($ruta)) {
-                $urls[] = Storage::disk('public')->url($ruta);
+        $materialesConUrl = [];
+        foreach ($this->material_difusion as $material) {
+            if (isset($material['ruta']) && Storage::disk('public')->exists($material['ruta'])) {
+                $material['url'] = Storage::disk('public')->url($material['ruta']);
+                $materialesConUrl[] = $material;
             }
         }
-        return $urls;
+        return $materialesConUrl;
     }
 
     /**
@@ -304,6 +341,34 @@ class ComiteVigilancia extends Model
         }
     }
 
+    /**
+     * Elimina un material de difusión específico
+     *
+     * @param int $index Índice del material a eliminar
+     * @return bool
+     */
+    public function eliminarMaterialDifusion($index)
+    {
+        $materiales = $this->material_difusion;
+
+        if (isset($materiales[$index])) {
+            // Eliminar archivo físico
+            if (isset($materiales[$index]['ruta']) && Storage::disk('public')->exists($materiales[$index]['ruta'])) {
+                Storage::disk('public')->delete($materiales[$index]['ruta']);
+            }
+
+            // Eliminar del array
+            unset($materiales[$index]);
+            $materiales = array_values($materiales); // Reindexar
+
+            // Actualizar en BD
+            $this->material_difusion = $materiales;
+            return $this->save();
+        }
+
+        return false;
+    }
+
     // ===== BOOT METHOD =====
 
     /**
@@ -338,7 +403,18 @@ class ComiteVigilancia extends Model
         // Antes de eliminar un comité (eliminar archivos asociados)
         static::deleting(function ($comite) {
             $comite->deleteMinuta();
-            // Aquí podrías eliminar también los otros archivos si es necesario
+            // Eliminar todos los materiales de difusión
+            foreach ($comite->material_difusion as $material) {
+                if (isset($material['ruta']) && Storage::disk('public')->exists($material['ruta'])) {
+                    Storage::disk('public')->delete($material['ruta']);
+                }
+            }
+            // Eliminar fotografías
+            foreach ($comite->fotografias_reunion as $foto) {
+                if (Storage::disk('public')->exists($foto)) {
+                    Storage::disk('public')->delete($foto);
+                }
+            }
         });
 
         // Después de eliminar un comité
