@@ -118,4 +118,13 @@ Route::middleware(['auth'])->group(function () {
     // Bitácora
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora.index');
     Route::get('/bitacora/filter', [BitacoraController::class, 'filter'])->name('bitacora.filter');
+
+    // Reportes (Solo SuperUsuario y AdministradorCS)
+    Route::prefix('reportes')->name('reportes.')->middleware(['auth'])->group(function () {
+        Route::get('/', [App\Http\Controllers\ReporteController::class, 'index'])->name('index');
+        Route::post('/pdf', [App\Http\Controllers\ReporteController::class, 'generarPDF'])->name('pdf');
+        Route::post('/excel', [App\Http\Controllers\ReporteController::class, 'generarExcel'])->name('excel');
+        Route::get('/comites', [App\Http\Controllers\ReporteController::class, 'getComitesPorFiltro'])->name('comites');
+        Route::get('/preview', [App\Http\Controllers\ReporteController::class, 'preview'])->name('preview');
+    });
 });

@@ -158,6 +158,12 @@
                             <i class="fas fa-images"></i> Carrusel
                         </a>
                         @endif
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        <a href="{{ route('reportes.index') }}"
+                            class="list-group-item list-group-item-action {{ Request::is('reportes*') ? 'active' : '' }}">
+                            <i class="fas fa-chart-bar"></i> Reportes
+                        </a>
+                        @endif
                     </div>
                 </div>
 

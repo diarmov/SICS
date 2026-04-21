@@ -144,15 +144,26 @@
                                 <div class="row align-items-end">
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold">Tipo de Material</label>
-                                        <select class="form-select" name="material_tipo[0]" required>
+                                        <select class="form-select" name="nuevos_materiales[0][tipo]">
                                             <option value="">Seleccionar tipo</option>
-                                            <option value="cartel">Cartel</option>
-                                            <option value="folleto">Folleto</option>
                                             <option value="tríptico">Tríptico</option>
+                                            <option value="video">Video</option>
+                                            <option value="infografía">Infografía</option>
+                                            <option value="cartel">Cartel</option>
+                                            <option value="espectacular">Espectacular</option>
+                                            <option value="folleto">Folleto</option>
                                             <option value="manual">Manual</option>
                                             <option value="guía">Guía</option>
-                                            <option value="presentación">Presentación</option>
-                                            <option value="video">Video</option>
+                                            <option value="manta">Manta</option>
+                                            <option value="perifoneo">Perifoneo</option>
+                                            <option value="periodicomural">Periódico Mural</option>
+                                            <option value="pintadebarda">Pinta de barda</option>
+                                            <option value="radio">Programa de radio</option>
+                                            <option value="anunciotv">Anuncio de Televisión</option>
+                                            <option value="cuadernillo">Cuadernillo</option>
+                                            <option value="plataformadigital">Contenido en plataformas
+                                                digitales</option>
+                                            <option value="volantes">Volantes</option>
                                             <option value="otro">Otro</option>
                                         </select>
                                     </div>
@@ -301,61 +312,66 @@
         }
     });
 
-    // ===== MATERIALES DE DIFUSIÓN =====
-    const addMaterialBtn = document.getElementById('add-material');
-    if (addMaterialBtn) {
-        console.log('Botón add-material encontrado');
+   // ===== MATERIALES DE DIFUSIÓN =====
+const addMaterialBtn = document.getElementById('add-material');
+if (addMaterialBtn) {
+    addMaterialBtn.addEventListener('click', function() {
+        // Usar timestamp + random para ID único
+        const uniqueId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        addMaterialBtn.addEventListener('click', function() {
-            console.log('Click en Agregar Material - materialCount:', materialCount);
+        const container = document.getElementById('materiales-container');
+        if (!container) return;
 
-            const container = document.getElementById('materiales-container');
-            if (!container) {
-                console.error('Contenedor materiales-container no encontrado');
-                return;
-            }
-
-            const newRow = document.createElement('div');
-            newRow.className = 'material-row card mb-3 p-3';
-            newRow.setAttribute('data-index', materialCount);
-            newRow.innerHTML = `
-                <div class="row align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Tipo de Material</label>
-                        <select class="form-select" name="material_tipo[${materialCount}]" required>
-                            <option value="">Seleccionar tipo</option>
-                            <option value="cartel">Cartel</option>
-                            <option value="folleto">Folleto</option>
-                            <option value="tríptico">Tríptico</option>
-                            <option value="manual">Manual</option>
-                            <option value="guía">Guía</option>
-                            <option value="presentación">Presentación</option>
-                            <option value="video">Video</option>
-                            <option value="otro">Otro</option>
+        const newRow = document.createElement('div');
+        newRow.className = 'material-row card mb-3 p-3';
+        newRow.setAttribute('data-id', uniqueId);
+        newRow.innerHTML = `
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Tipo de Material</label>
+                    <select class="form-select" name="material_tipo[${uniqueId}]" required>
+                             <option value="">Seleccionar tipo</option>
+                                                            <option value="tríptico">Tríptico</option>
+                                                            <option value="video">Video</option>
+                                                            <option value="infografía">Infografía</option>
+                                                            <option value="cartel">Cartel</option>
+                                                            <option value="espectacular">Espectacular</option>
+                                                            <option value="folleto">Folleto</option>
+                                                            <option value="manual">Manual</option>
+                                                            <option value="guía">Guía</option>
+                                                            <option value="manta">Manta</option>
+                                                            <option value="perifoneo">Perifoneo</option>
+                                                            <option value="periodicomural">Periódico Mural</option>
+                                                            <option value="pintadebarda">Pinta de barda</option>
+                                                            <option value="radio">Programa de radio</option>
+                                                            <option value="anunciotv">Anuncio de Televisión</option>
+                                                            <option value="cuadernillo">Cuadernillo</option>
+                                                            <option value="plataformadigital">Contenido en plataformas
+                                                                digitales</option>
+                                                            <option value="volantes">Volantes</option>
+                                                            <option value="otro">Otro</option>
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Cantidad</label>
-                        <input type="number" class="form-control" name="material_cantidad[${materialCount}]" placeholder="Cantidad" min="1" value="1" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Archivo</label>
-                        <input type="file" class="form-control material-archivo" name="material_archivo[${materialCount}]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" required>
-                        <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx. 5MB)</small>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-danger btn-sm remove-material mt-4">Eliminar</button>
-                    </div>
                 </div>
-            `;
-            container.appendChild(newRow);
-            materialCount++;
-            console.log('Material agregado - nuevo materialCount:', materialCount);
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Cantidad</label>
+                    <input type="number" class="form-control" name="material_cantidad[${uniqueId}]" placeholder="Cantidad" min="1" value="1" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Archivo</label>
+                    <input type="file" class="form-control material-archivo" name="material_archivo[${uniqueId}]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" required>
+                    <small class="text-muted">PDF, Word, Excel, JPG, PNG (máx. 5MB)</small>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger btn-sm remove-material mt-4">Eliminar</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(newRow);
 
-            // Actualizar vista previa
-            updateMaterialPreview();
-        });
-    } else {
+        // Actualizar vista previa
+        updateMaterialPreview();
+    });
+} else {
         console.error('Botón add-material NO encontrado');
     }
 

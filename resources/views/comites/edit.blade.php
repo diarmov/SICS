@@ -354,13 +354,24 @@
                                                         <label class="form-label fw-bold">Tipo de Material</label>
                                                         <select class="form-select" name="nuevos_materiales[0][tipo]">
                                                             <option value="">Seleccionar tipo</option>
-                                                            <option value="cartel">Cartel</option>
-                                                            <option value="folleto">Folleto</option>
                                                             <option value="tríptico">Tríptico</option>
+                                                            <option value="video">Video</option>
+                                                            <option value="infografía">Infografía</option>
+                                                            <option value="cartel">Cartel</option>
+                                                            <option value="espectacular">Espectacular</option>
+                                                            <option value="folleto">Folleto</option>
                                                             <option value="manual">Manual</option>
                                                             <option value="guía">Guía</option>
-                                                            <option value="presentación">Presentación</option>
-                                                            <option value="video">Video</option>
+                                                            <option value="manta">Manta</option>
+                                                            <option value="perifoneo">Perifoneo</option>
+                                                            <option value="periodicomural">Periódico Mural</option>
+                                                            <option value="pintadebarda">Pinta de barda</option>
+                                                            <option value="radio">Programa de radio</option>
+                                                            <option value="anunciotv">Anuncio de Televisión</option>
+                                                            <option value="cuadernillo">Cuadernillo</option>
+                                                            <option value="plataformadigital">Contenido en plataformas
+                                                                digitales</option>
+                                                            <option value="volantes">Volantes</option>
                                                             <option value="otro">Otro</option>
                                                         </select>
                                                     </div>
@@ -943,15 +954,26 @@ document.getElementById('add-nuevo-material').addEventListener('click', function
         <div class="col-md-4">
             <label class="form-label fw-bold">Tipo de Material</label>
             <select class="form-select" name="nuevos_materiales[${nuevoMaterialCount}][tipo]">
-                <option value="">Seleccionar tipo</option>
-                <option value="cartel">Cartel</option>
-                <option value="folleto">Folleto</option>
-                <option value="tríptico">Tríptico</option>
-                <option value="manual">Manual</option>
-                <option value="guía">Guía</option>
-                <option value="presentación">Presentación</option>
-                <option value="video">Video</option>
-                <option value="otro">Otro</option>
+                                                            <option value="">Seleccionar tipo</option>
+                                                            <option value="tríptico">Tríptico</option>
+                                                            <option value="video">Video</option>
+                                                            <option value="infografía">Infografía</option>
+                                                            <option value="cartel">Cartel</option>
+                                                            <option value="espectacular">Espectacular</option>
+                                                            <option value="folleto">Folleto</option>
+                                                            <option value="manual">Manual</option>
+                                                            <option value="guía">Guía</option>
+                                                            <option value="manta">Manta</option>
+                                                            <option value="perifoneo">Perifoneo</option>
+                                                            <option value="periodicomural">Periódico Mural</option>
+                                                            <option value="pintadebarda">Pinta de barda</option>
+                                                            <option value="radio">Programa de radio</option>
+                                                            <option value="anunciotv">Anuncio de Televisión</option>
+                                                            <option value="cuadernillo">Cuadernillo</option>
+                                                            <option value="plataformadigital">Contenido en plataformas
+                                                                digitales</option>
+                                                            <option value="volantes">Volantes</option>
+                                                            <option value="otro">Otro</option>
             </select>
         </div>
         <div class="col-md-2">
