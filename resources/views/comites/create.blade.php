@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-tinto text-white">
-                    <h4 class="mb-0">Crear Nuevo Comité de Vigilancia</h4>
+                    <h4 class="mb-0">Crear Nuevo Comité de Contraloría Social</h4>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('comites.store') }}" method="POST" enctype="multipart/form-data"

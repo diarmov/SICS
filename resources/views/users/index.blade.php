@@ -10,9 +10,10 @@
     @endcan
 </div>
 
-@if(auth()->user()->hasRole('CoordinadorEnlaces'))
+@if(auth()->user()->hasRole('Instancia_Normativa'))
 <div class="alert alert-info">
-    <strong>Información:</strong> Como Coordinador de Enlaces, solo puedes crear usuarios con rol "EnlacePrograma" para
+    <strong>Información:</strong> Como Coordinador de Enlaces, solo puedes crear usuarios con rol "Instancia_Ejecutora"
+    para
     tu dependencia ({{ auth()->user()->dependencia->siglas }}).
 </div>
 @endif
@@ -28,7 +29,7 @@
                         <th>Dependencia</th>
                         <th>Rol</th>
                         <th>Estado</th>
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <th>Acciones</th>
                         @endif
                     </tr>
@@ -45,7 +46,7 @@
                                 {{ $user->activo ? 'Activo' : 'Inactivo' }}
                             </span>
                         </td>
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ route('users.edit', $user) }}" class="btn btn-primary btn-sm">Editar</a>

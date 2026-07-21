@@ -23,8 +23,8 @@
                         @endif
                     </div>
                     <div>
-                        <!-- Botones de validación para SuperUsuario y AdministradorCS -->
-                        @if(Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        <!-- Botones de validación para SuperUsuario y Organo_Estatal_de_Control -->
+                        @if(Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         @if(!$comite->estaValidado())
                         <form action="{{ route('comites.validar', $comite) }}" method="POST" class="d-inline">
                             @csrf
@@ -45,7 +45,7 @@
                         @endif
                         @php
                         $puedeEditar = !$comite->estaValidado() || Auth::user()->hasRole(['SuperUsuario',
-                        'AdministradorCS']);
+                        'Organo_Estatal_de_Control']);
                         @endphp
 
                         @if($puedeEditar)

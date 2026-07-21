@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - SICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para los íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --color-tinto: #7c0a02;
@@ -33,6 +35,29 @@
         .login-container {
             min-height: 100vh;
             background-color: var(--color-gris-claro);
+        }
+
+        /* Estilo para el campo de contraseña con ícono */
+        .password-toggle-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-wrapper .form-control {
+            padding-right: 45px;
+        }
+
+        .password-toggle-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            z-index: 10;
+        }
+
+        .password-toggle-icon:hover {
+            color: var(--color-tinto);
         }
     </style>
 </head>
@@ -64,14 +89,20 @@
 
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Contraseña</label>
-                                    <input id="password" type="password"
-                                        class="form-control @error('password') is-invalid @enderror" name="password"
-                                        required autocomplete="current-password">
-                                    @error('password')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
+                                    <div class="password-toggle-wrapper">
+                                        <input id="password" type="password"
+                                            class="form-control @error('password') is-invalid @enderror" name="password"
+                                            required autocomplete="current-password">
+                                        <span class="password-toggle-icon" id="togglePassword"
+                                            title="Mostrar/Ocultar contraseña">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                        @error('password')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                        @enderror
+                                    </div>
                                 </div>
 
                                 <div class="mb-3 form-check">
@@ -100,6 +131,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Script para mostrar/ocultar contraseña -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            togglePassword.addEventListener('click', function() {
+                // Toggle el tipo de input
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Cambiar el ícono
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

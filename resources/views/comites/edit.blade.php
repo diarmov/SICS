@@ -34,7 +34,7 @@
                     </div>
                     @endif
                     <!-- ALERTA SI EL COMITÉ ESTÁ VALIDADO Y EL USUARIO ES ADMIN -->
-                    @if($comite->estaValidado() && Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                    @if($comite->estaValidado() && Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                     <div class="alert alert-warning">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
@@ -593,8 +593,8 @@
     console.log('Validado (campo):', {{ $comite->validado ? 'true' : 'false' }});
     console.log('Validado por:', {{ $comite->validado_por ?? 'null' }});
     console.log('Fecha validación:', '{{ $comite->fecha_validacion ? $comite->fecha_validacion->format('Y-m-d H:i:s') : 'null' }}');
-    console.log('Rol Admin:', {{ Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) ? 'true' : 'false' }});
-    console.log('Rol Coordinador:', {{ Auth::user()->hasRole('CoordinadorEnlaces') ? 'true' : 'false' }});
+    console.log('Rol Admin:', {{ Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) ? 'true' : 'false' }});
+    console.log('Rol Coordinador:', {{ Auth::user()->hasRole('Instancia_Normativa') ? 'true' : 'false' }});
 
     document.addEventListener('DOMContentLoaded', function() {
 

@@ -58,8 +58,8 @@ class HomeController extends Controller
     // Método para el dashboard
     public function dashboard()
     {
-        // Obtener actividad reciente de la bitácora (solo para SuperUsuario y AdministradorCS)
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        // Obtener actividad reciente de la bitácora (solo para SuperUsuario y Organo_Estatal_de_Control)
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             try {
                 if (Schema::hasTable('bitacoras')) {
                     $bitacoras = Bitacora::with('user')->latest()->paginate(15); // 10 para dashboard

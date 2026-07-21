@@ -18,7 +18,7 @@ class DependenciaController extends Controller
     public function index()
     {
         // Verificar rol manualmente
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para acceder a la gestión de dependencias.');
         }
 

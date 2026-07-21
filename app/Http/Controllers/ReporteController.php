@@ -24,7 +24,7 @@ class ReporteController extends Controller
      */
     public function index()
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para acceder a los reportes.');
         }
 
@@ -39,7 +39,7 @@ class ReporteController extends Controller
      */
     public function generarPDF(Request $request)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para generar reportes.');
         }
 
@@ -65,7 +65,7 @@ class ReporteController extends Controller
      */
     public function generarExcel(Request $request)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para generar reportes.');
         }
 
@@ -326,7 +326,7 @@ class ReporteController extends Controller
      */
     public function getComitesPorFiltro(Request $request)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             return response()->json([], 403);
         }
 
@@ -350,7 +350,7 @@ class ReporteController extends Controller
      */
     public function preview(Request $request)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 

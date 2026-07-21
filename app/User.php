@@ -50,17 +50,17 @@ class User extends Authenticatable
     // Método para verificar si el usuario tiene acceso a módulos específicos
     public function puedeAccederAModulo($modulo)
     {
-        if ($this->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if ($this->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             return true;
         }
 
         switch ($modulo) {
             case 'usuarios':
-                return $this->hasRole('CoordinadorEnlaces');
+                return $this->hasRole('Instancia_Normativa');
             case 'programas':
-                return $this->hasRole(['CoordinadorEnlaces', 'EnlacePrograma']);
+                return $this->hasRole(['Instancia_Normativa', 'Instancia_Ejecutora']);
             case 'comites':
-                return $this->hasRole(['CoordinadorEnlaces', 'EnlacePrograma']);
+                return $this->hasRole(['Instancia_Normativa', 'Instancia_Ejecutora']);
             default:
                 return false;
         }

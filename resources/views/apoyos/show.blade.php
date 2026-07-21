@@ -12,7 +12,7 @@
                     <a href="{{ route('tipos-apoyo.index') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Volver
                     </a>
-                    @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                    @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                     <a href="{{ route('tipos-apoyo.edit', $tipoApoyo) }}" class="btn btn-warning">
                         <i class="fas fa-edit"></i> Editar
                     </a>
@@ -56,7 +56,7 @@
                         </tr>
                     </table>
 
-                    @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                    @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                     <div class="mt-4">
                         <form action="{{ route('tipos-apoyo.toggle-status', $tipoApoyo) }}" method="POST"
                             class="d-inline">

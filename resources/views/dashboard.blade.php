@@ -18,7 +18,7 @@
         </p>
     </div>
 </div>
-@if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+@if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
 <div class="row">
     <div class="col-md-3 mb-4">
         <div class="card text-white bg-tinto">

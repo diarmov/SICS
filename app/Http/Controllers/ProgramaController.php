@@ -21,7 +21,7 @@ class ProgramaController extends Controller
 
     public function index()
     {
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             $programas = Programa::with('dependencia')->get();
         } else {
             $programas = Programa::where('dependencia_id', Auth::user()->dependencia_id)->get();
@@ -32,7 +32,7 @@ class ProgramaController extends Controller
 
     public function create()
     {
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             $dependencias = Dependencia::where('activo', true)->get();
         } else {
             $dependencias = Dependencia::where('id', Auth::user()->dependencia_id)->where('activo', true)->get();
@@ -203,7 +203,7 @@ class ProgramaController extends Controller
 
     public function show(Programa $programa)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para ver este programa.');
         }
 
@@ -212,11 +212,11 @@ class ProgramaController extends Controller
 
     public function edit(Programa $programa)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para editar este programa.');
         }
 
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             $dependencias = Dependencia::where('activo', true)->get();
         } else {
             $dependencias = Dependencia::where('id', Auth::user()->dependencia_id)->where('activo', true)->get();
@@ -231,7 +231,7 @@ class ProgramaController extends Controller
     public function update(Request $request, Programa $programa)
     {
         try {
-            if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+            if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
                 abort(403, 'No autorizado para actualizar este programa.');
             }
 
@@ -269,7 +269,7 @@ class ProgramaController extends Controller
 
             // 🔥 IMPORTANTE: Solo los administradores pueden activar manualmente el programa
             // pero si la guía no está validada, no se puede activar
-            if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+            if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
                 if ($request->has('activo') && $request->activo == 1) {
                     // Verificar que la guía esté validada antes de activar
                     if ($programa->guia_operativa_validada) {
@@ -414,7 +414,7 @@ class ProgramaController extends Controller
 
     public function destroy(Programa $programa)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para eliminar este programa.');
         }
 
@@ -495,7 +495,7 @@ class ProgramaController extends Controller
     // Nuevo método para gestionar informes
     public function informes(Programa $programa)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para ver los informes de este programa.');
         }
 
@@ -506,7 +506,7 @@ class ProgramaController extends Controller
     // Método para agregar/editar informe
     public function storeInforme(Request $request, Programa $programa)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para agregar informes a este programa.');
         }
 
@@ -561,7 +561,7 @@ class ProgramaController extends Controller
     {
         $programa = $informe->programa;
 
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $programa->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para eliminar este informe.');
         }
 
@@ -579,7 +579,7 @@ class ProgramaController extends Controller
     public function validarGuiaOperativa(Request $request, Programa $programa)
     {
         // Verificar permisos
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para validar guías operativas.');
         }
 
@@ -643,7 +643,7 @@ class ProgramaController extends Controller
     {
         // Verificar que el usuario sea el creador o tenga permisos
         if (
-            !Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) &&
+            !Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) &&
             $programa->dependencia_id != Auth::user()->dependencia_id
         ) {
             abort(403, 'No autorizado para editar este programa.');

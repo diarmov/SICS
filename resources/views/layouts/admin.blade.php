@@ -98,6 +98,15 @@
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
+                            <!-- Agregar opción de cambio de contraseña -->
+                            <li>
+                                <a class="dropdown-item" href="{{ route('password.change.form') }}">
+                                    <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -144,27 +153,38 @@
                             de Vigilancia</a>
                         @endcan
                         <!-- Nuevo menú para Tipos de Apoyo -->
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <a href="{{ route('tipos-apoyo.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('tipos-apoyo*') ? 'active' : '' }}">Tipos
                             de Apoyo</a>
                         @endif
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <a href="{{ route('bitacora.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('bitacora*') ? 'active' : '' }}">Bitácora</a>
                         @endif
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <a href="{{ route('carrusel.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('carrusel*') ? 'active' : '' }}">
                             <i class="fas fa-images"></i> Carrusel
                         </a>
                         @endif
-                        @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <a href="{{ route('reportes.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('reportes*') ? 'active' : '' }}">
                             <i class="fas fa-chart-bar"></i> Reportes
                         </a>
                         @endif
+                    </div>
+                    <div class="card mt-3">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">Configuración</h6>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <a href="{{ route('password.change.form') }}"
+                                class="list-group-item list-group-item-action">
+                                <i class="fas fa-key me-2"></i> Cambiar Contraseña
+                            </a>
+                        </div>
                     </div>
                 </div>
 

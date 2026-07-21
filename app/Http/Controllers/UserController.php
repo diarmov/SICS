@@ -22,12 +22,12 @@ class UserController extends Controller
     public function index()
     {
         // Verificar permisos
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS', 'CoordinadorEnlaces'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control', 'Instancia_Normativa'])) {
             abort(403, 'No autorizado para acceder a la gestión de usuarios.');
         }
 
-        // Si es CoordinadorEnlaces, solo muestra usuarios de su dependencia
-        if (auth()->user()->hasRole('CoordinadorEnlaces')) {
+        // Si es Instancia_Normativa, solo muestra usuarios de su dependencia
+        if (auth()->user()->hasRole('Instancia_Normativa')) {
             $users = User::where('dependencia_id', auth()->user()->dependencia_id)
                 ->with('dependencia')
                 ->get();
@@ -41,20 +41,20 @@ class UserController extends Controller
     public function create()
     {
         // Verificar permisos
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS', 'CoordinadorEnlaces'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control', 'Instancia_Normativa'])) {
             abort(403, 'No autorizado para crear usuarios.');
         }
 
         // Obtener roles disponibles según el usuario actual
-        if (auth()->user()->hasRole('CoordinadorEnlaces')) {
-            // CoordinadorEnlaces solo puede asignar rol de EnlacePrograma
-            $roles = Role::where('name', 'EnlacePrograma')->get();
+        if (auth()->user()->hasRole('Instancia_Normativa')) {
+            // Instancia_Normativa solo puede asignar rol de Instancia_Ejecutora
+            $roles = Role::where('name', 'Instancia_Ejecutora')->get();
             // Solo puede crear usuarios para su propia dependencia
             $dependencias = Dependencia::where('id', auth()->user()->dependencia_id)
                 ->where('activo', true)
                 ->get();
         } else {
-            // SuperUsuario y AdministradorCS pueden asignar cualquier rol
+            // SuperUsuario y Organo_Estatal_de_Control pueden asignar cualquier rol
             $roles = Role::all();
             $dependencias = Dependencia::where('activo', true)->get();
         }
@@ -75,12 +75,12 @@ class UserController extends Controller
             'rol' => 'required|exists:roles,name',
         ]);
 
-        // Validaciones adicionales para CoordinadorEnlaces
-        if (auth()->user()->hasRole('CoordinadorEnlaces')) {
-            // Verificar que solo asigne rol EnlacePrograma
-            if ($request->rol !== 'EnlacePrograma') {
+        // Validaciones adicionales para Instancia_Normativa
+        if (auth()->user()->hasRole('Instancia_Normativa')) {
+            // Verificar que solo asigne rol Instancia_Ejecutora
+            if ($request->rol !== 'Instancia_Ejecutora') {
                 return redirect()->back()
-                    ->with('error', 'Solo puedes crear usuarios con rol EnlacePrograma.')
+                    ->with('error', 'Solo puedes crear usuarios con rol Instancia_Ejecutora.')
                     ->withInput();
             }
 
@@ -111,11 +111,11 @@ class UserController extends Controller
     public function edit(User $user)
     {
         // Verificar permisos
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para editar usuarios.');
         }
 
-        // CoordinadorEnlaces no puede editar usuarios
+        // Instancia_Normativa no puede editar usuarios
         $dependencias = Dependencia::where('activo', true)->get();
         $roles = Role::all();
 
@@ -124,8 +124,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        // Verificar permisos - Solo SuperUsuario y AdministradorCS pueden editar
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        // Verificar permisos - Solo SuperUsuario y Organo_Estatal_de_Control pueden editar
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para actualizar usuarios.');
         }
 
@@ -155,8 +155,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        // Verificar permisos - Solo SuperUsuario y AdministradorCS pueden eliminar
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        // Verificar permisos - Solo SuperUsuario y Organo_Estatal_de_Control pueden eliminar
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para eliminar usuarios.');
         }
 

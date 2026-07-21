@@ -18,8 +18,8 @@ class TipoApoyoController extends Controller
 
     public function index()
     {
-        // Solo SuperUsuario y AdministradorCS pueden ver los tipos de apoyo
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        // Solo SuperUsuario y Organo_Estatal_de_Control pueden ver los tipos de apoyo
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para acceder a los tipos de apoyo.');
         }
 
@@ -29,7 +29,7 @@ class TipoApoyoController extends Controller
 
     public function create()
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para crear tipos de apoyo.');
         }
 
@@ -38,7 +38,7 @@ class TipoApoyoController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para crear tipos de apoyo.');
         }
 
@@ -67,7 +67,7 @@ class TipoApoyoController extends Controller
 
     public function show(TipoApoyo $tipoApoyo)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para ver tipos de apoyo.');
         }
 
@@ -77,7 +77,7 @@ class TipoApoyoController extends Controller
 
     public function edit(TipoApoyo $tipoApoyo)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para editar tipos de apoyo.');
         }
 
@@ -86,7 +86,7 @@ class TipoApoyoController extends Controller
 
     public function update(Request $request, TipoApoyo $tipoApoyo)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para actualizar tipos de apoyo.');
         }
 
@@ -116,7 +116,7 @@ class TipoApoyoController extends Controller
 
     public function destroy(TipoApoyo $tipoApoyo)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para eliminar tipos de apoyo.');
         }
 
@@ -142,7 +142,7 @@ class TipoApoyoController extends Controller
 
     public function toggleStatus(TipoApoyo $tipoApoyo)
     {
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para cambiar el estado de tipos de apoyo.');
         }
 

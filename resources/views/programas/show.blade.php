@@ -11,7 +11,7 @@
                     <h4 class="mb-0">{{ $programa->nombre }}</h4>
                     <div>
                         @if($programa->guia_operativa_pendiente && Auth::user()->hasRole(['SuperUsuario',
-                        'AdministradorCS']))
+                        'Organo_Estatal_de_Control']))
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
                             data-bs-target="#validarGuiaModal">
                             <i class="fas fa-check-circle"></i> Validar Guía Operativa
@@ -89,7 +89,7 @@
                                     <strong>Observaciones:</strong> {{ $programa->guia_operativa_observaciones }}
                                     <br>
                                     @if(Auth::user()->dependencia_id == $programa->dependencia_id ||
-                                    Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                                    Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                                     <button type="button" class="btn btn-warning btn-sm mt-2" data-bs-toggle="modal"
                                         data-bs-target="#editarGuiaModal">
                                         <i class="fas fa-edit"></i> Editar Guía Operativa

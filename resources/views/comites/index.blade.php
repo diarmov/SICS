@@ -8,9 +8,9 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="text-tinto">Gestión de Comités de Vigilancia</h2>
+                    <h2 class="text-tinto">Gestión de Comités de Contraloría Social</h2>
                     <div>
-                        {{-- @if(Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                        {{-- @if(Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                         <a href="{{ route('comites.pendientes') }}" class="btn btn-warning me-2">
                             <i class="fas fa-clock"></i> Pendientes de Validación
                         </a>
@@ -80,7 +80,7 @@
 
                                             @php
                                             $puedeEditar = !$comite->estaValidado() ||
-                                            Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
+                                            Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']);
                                             @endphp
 
                                             @if($puedeEditar)

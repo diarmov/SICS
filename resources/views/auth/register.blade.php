@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Usuario - SICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --color-tinto: #7c0a02;
@@ -28,6 +29,28 @@
         .btn-tinto:hover {
             background-color: #5a0802;
             color: white;
+        }
+
+        .password-toggle-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-wrapper .form-control {
+            padding-right: 45px;
+        }
+
+        .password-toggle-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            z-index: 10;
+        }
+
+        .password-toggle-icon:hover {
+            color: var(--color-tinto);
         }
     </style>
 </head>
@@ -128,21 +151,33 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="password" class="form-label">Contraseña</label>
-                                        <input id="password" type="password"
-                                            class="form-control @error('password') is-invalid @enderror" name="password"
-                                            required autocomplete="new-password">
-                                        @error('password')
-                                        <span class="invalid-feedback" role="alert">
-                                            <strong>{{ $message }}</strong>
-                                        </span>
-                                        @enderror
+                                        <div class="password-toggle-wrapper">
+                                            <input id="password" type="password"
+                                                class="form-control @error('password') is-invalid @enderror"
+                                                name="password" required autocomplete="new-password">
+                                            <span class="password-toggle-icon" id="togglePassword"
+                                                title="Mostrar/Ocultar contraseña">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                            @error('password')
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
+                                            @enderror
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="password-confirm" class="form-label">Confirmar Contraseña</label>
-                                        <input id="password-confirm" type="password" class="form-control"
-                                            name="password_confirmation" required autocomplete="new-password">
+                                        <div class="password-toggle-wrapper">
+                                            <input id="password-confirm" type="password" class="form-control"
+                                                name="password_confirmation" required autocomplete="new-password">
+                                            <span class="password-toggle-icon" id="togglePasswordConfirm"
+                                                title="Mostrar/Ocultar contraseña">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -184,6 +219,34 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Para el campo de contraseña
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+
+            // Para el campo de confirmar contraseña
+            const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
+            const passwordConfirmInput = document.getElementById('password-confirm');
+
+            togglePasswordConfirm.addEventListener('click', function() {
+                const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordConfirmInput.setAttribute('type', type);
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

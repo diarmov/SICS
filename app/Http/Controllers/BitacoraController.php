@@ -16,7 +16,7 @@ class BitacoraController extends Controller
     public function index()
     {
         // Verificar el rol manualmente
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para acceder a la bitácora.');
         }
 
@@ -32,7 +32,7 @@ class BitacoraController extends Controller
     public function filter(Request $request)
     {
         // Verificar el rol manualmente
-        if (!auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para acceder a la bitácora.');
         }
 

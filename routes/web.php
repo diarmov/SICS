@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\BitacoraController;
 use App\Http\Controllers\CarruselController;
 use App\Http\Controllers\ComiteVigilanciaController;
@@ -33,6 +34,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/cambiar-contraseña', [ChangePasswordController::class, 'showChangePasswordForm'])
+        ->name('password.change.form');
+    Route::post('/cambiar-contraseña', [ChangePasswordController::class, 'changePassword'])
+        ->name('password.change');
 
     // Dependencias
     Route::get('/dependencias', [DependenciaController::class, 'index'])->name('dependencias.index');
@@ -98,7 +103,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Agregar después de las rutas de Tipos de Apoyo
-    // Carrusel (Solo para SuperUsuario y AdministradorCS)
+    // Carrusel (Solo para SuperUsuario y Organo_Estatal_de_Control)
     Route::prefix('carrusel')->name('carrusel.')->middleware(['auth'])->group(function () {
         Route::get('/', [CarruselController::class, 'index'])->name('index');
         Route::get('/create', [CarruselController::class, 'create'])->name('create');
@@ -119,7 +124,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora.index');
     Route::get('/bitacora/filter', [BitacoraController::class, 'filter'])->name('bitacora.filter');
 
-    // Reportes (Solo SuperUsuario y AdministradorCS)
+    // Reportes (Solo SuperUsuario y Organo_Estatal_de_Control)
     Route::prefix('reportes')->name('reportes.')->middleware(['auth'])->group(function () {
         Route::get('/', [App\Http\Controllers\ReporteController::class, 'index'])->name('index');
         Route::post('/pdf', [App\Http\Controllers\ReporteController::class, 'generarPDF'])->name('pdf');

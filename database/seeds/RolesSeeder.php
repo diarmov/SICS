@@ -37,10 +37,10 @@ class RolesSeeder extends Seeder
         $superUsuario = Role::create(['name' => 'SuperUsuario']);
         $superUsuario->givePermissionTo(Permission::all());
 
-        $adminCS = Role::create(['name' => 'AdministradorCS']);
+        $adminCS = Role::create(['name' => 'Organo_Estatal_de_Control']);
         $adminCS->givePermissionTo(Permission::all());
 
-        $coordinador = Role::create(['name' => 'CoordinadorEnlaces']);
+        $coordinador = Role::create(['name' => 'Instancia_Normativa']);
         $coordinador->givePermissionTo([
             'programas.*',
             'comites.*',
@@ -49,7 +49,7 @@ class RolesSeeder extends Seeder
             'usuarios.enlace'
         ]);
 
-        $enlace = Role::create(['name' => 'EnlacePrograma']);
+        $enlace = Role::create(['name' => 'Instancia_Ejecutora']);
         $enlace->givePermissionTo(['programas.*', 'comites.*']);
 
         $this->command->info('Roles y permisos creados exitosamente!');

@@ -29,8 +29,8 @@ class ComiteVigilanciaController extends Controller
      * Muestra el formulario para editar un comité
      *
      * REGLAS DE ACCESO:
-     * - SuperUsuario y AdministradorCS: Pueden editar SIEMPRE (incluso comités validados)
-     * - CoordinadorEnlaces: Puede editar SOLO comités de su dependencia y SOLO si NO están validados
+     * - SuperUsuario y Organo_Estatal_de_Control: Pueden editar SIEMPRE (incluso comités validados)
+     * - Instancia_Normativa: Puede editar SOLO comités de su dependencia y SOLO si NO están validados
      * - Otros usuarios: No pueden editar
      *
      * @param  \App\ComiteVigilancia  $comite
@@ -39,7 +39,7 @@ class ComiteVigilanciaController extends Controller
 
     public function index()
     {
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             $comites = ComiteVigilancia::with(['dependencia', 'programa', 'elementos', 'estado', 'municipio', 'localidad'])->get();
         } else {
             $comites = ComiteVigilancia::where('dependencia_id', Auth::user()->dependencia_id)
@@ -52,7 +52,7 @@ class ComiteVigilanciaController extends Controller
 
     public function create()
     {
-        if (Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             $dependencias = Dependencia::where('activo', true)->get();
             $programas = Programa::where('activo', true)->get();
         } else {
@@ -334,7 +334,7 @@ class ComiteVigilanciaController extends Controller
 
     public function show(ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para ver este comité.');
         }
 
@@ -346,8 +346,8 @@ class ComiteVigilanciaController extends Controller
     public function edit(ComiteVigilancia $comite)
     {
         // Verificar roles
-        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
-        $esCoordinador = Auth::user()->hasRole('CoordinadorEnlaces');
+        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']);
+        $esCoordinador = Auth::user()->hasRole('Instancia_Normativa');
         $esDeSuDependencia = $comite->dependencia_id == Auth::user()->dependencia_id;
 
         // LOG PARA DEPURACIÓN
@@ -433,8 +433,8 @@ class ComiteVigilanciaController extends Controller
     public function update(Request $request, ComiteVigilancia $comite)
     {
         // Verificar roles
-        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']);
-        $esCoordinador = Auth::user()->hasRole('CoordinadorEnlaces');
+        $esAdmin = Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']);
+        $esCoordinador = Auth::user()->hasRole('Instancia_Normativa');
         $esDeSuDependencia = $comite->dependencia_id == Auth::user()->dependencia_id;
 
         Log::info('=== UPDATE COMITÉ ===');
@@ -677,7 +677,7 @@ class ComiteVigilanciaController extends Controller
      */
     public function eliminarMaterialDifusion(Request $request, ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -745,7 +745,7 @@ class ComiteVigilanciaController extends Controller
      */
     public function eliminarFotografia(Request $request, ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -810,7 +810,7 @@ class ComiteVigilanciaController extends Controller
      */
     public function eliminarListaAsistencia(Request $request, ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -860,7 +860,7 @@ class ComiteVigilanciaController extends Controller
 
     public function destroy(ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']) && $comite->dependencia_id != Auth::user()->dependencia_id) {
             abort(403, 'No autorizado para eliminar este comité.');
         }
 
@@ -947,7 +947,7 @@ class ComiteVigilanciaController extends Controller
      */
     public function validar(Request $request, ComiteVigilancia $comite)
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para validar comités.');
         }
 
@@ -972,7 +972,7 @@ class ComiteVigilanciaController extends Controller
     public function invalidar(Request $request, ComiteVigilancia $comite)
     {
         // Solo administradores pueden invalidar
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para invalidar comités.');
         }
 
@@ -1014,7 +1014,7 @@ class ComiteVigilanciaController extends Controller
      */
     public function pendientes()
     {
-        if (!Auth::user()->hasRole(['SuperUsuario', 'AdministradorCS'])) {
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para ver comités pendientes.');
         }
 

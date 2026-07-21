@@ -19,7 +19,7 @@ class RegisterController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:SuperUsuario|AdministradorCS');
+        $this->middleware('role:SuperUsuario|Organo_Estatal_de_Control');
     }
 
     public function showRegistrationForm()

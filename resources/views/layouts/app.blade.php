@@ -108,6 +108,15 @@
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
+                            <!-- Agregar opción de cambio de contraseña -->
+                            <li>
+                                <a class="dropdown-item" href="{{ route('password.change.form') }}">
+                                    <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf

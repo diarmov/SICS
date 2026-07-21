@@ -8,7 +8,7 @@
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0 text-gray-800">Tipos de Apoyo</h1>
-                @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                 <a href="{{ route('tipos-apoyo.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Nuevo Tipo de Apoyo
                 </a>
@@ -54,7 +54,7 @@
                                         title="Ver">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    @if(auth()->user()->hasRole(['SuperUsuario', 'AdministradorCS']))
+                                    @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
                                     <a href="{{ route('tipos-apoyo.edit', $tipo) }}" class="btn btn-sm btn-warning"
                                         title="Editar">
                                         <i class="fas fa-edit"></i>

@@ -229,8 +229,9 @@
 
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Importante:</strong> La guía operativa deberá ser validada por un Administrador CS o
-                            SuperUsuario para que el programa quede activo.
+                            <strong>Importante:</strong> La guía operativa deberá ser validada por el <b>Órgano Estatal
+                                de
+                                Control</b> para que el programa quede activo.
                             Hasta que no sea validada, el programa permanecerá en estado "Pendiente".
                         </div>
 
