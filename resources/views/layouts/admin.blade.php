@@ -150,7 +150,7 @@
                         @can('comites.*')
                         <a href="{{ route('comites.index') }}"
                             class="list-group-item list-group-item-action {{ Request::is('comites*') ? 'active' : '' }}">Comités
-                            de Vigilancia</a>
+                            de Contraloría Social</a>
                         @endcan
                         <!-- Nuevo menú para Tipos de Apoyo -->
                         @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\User;
 use App\Dependencia;
+use App\Programa;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\RegistraBitacora;
@@ -21,18 +22,16 @@ class UserController extends Controller
 
     public function index()
     {
-        // Verificar permisos
         if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control', 'Instancia_Normativa'])) {
             abort(403, 'No autorizado para acceder a la gestión de usuarios.');
         }
 
-        // Si es Instancia_Normativa, solo muestra usuarios de su dependencia
         if (auth()->user()->hasRole('Instancia_Normativa')) {
             $users = User::where('dependencia_id', auth()->user()->dependencia_id)
-                ->with('dependencia')
+                ->with(['dependencia', 'programa'])
                 ->get();
         } else {
-            $users = User::with('dependencia')->get();
+            $users = User::with(['dependencia', 'programa'])->get();
         }
 
         return view('users.index', compact('users'));
@@ -40,26 +39,30 @@ class UserController extends Controller
 
     public function create()
     {
-        // Verificar permisos
         if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control', 'Instancia_Normativa'])) {
             abort(403, 'No autorizado para crear usuarios.');
         }
 
-        // Obtener roles disponibles según el usuario actual
         if (auth()->user()->hasRole('Instancia_Normativa')) {
-            // Instancia_Normativa solo puede asignar rol de Instancia_Ejecutora
+            // Solo puede asignar rol de Instancia_Ejecutora
             $roles = Role::where('name', 'Instancia_Ejecutora')->get();
+
             // Solo puede crear usuarios para su propia dependencia
             $dependencias = Dependencia::where('id', auth()->user()->dependencia_id)
                 ->where('activo', true)
                 ->get();
+
+            // Obtener programas de su dependencia para vincular
+            $programas = Programa::where('dependencia_id', auth()->user()->dependencia_id)
+                ->where('activo', true)
+                ->get();
         } else {
-            // SuperUsuario y Organo_Estatal_de_Control pueden asignar cualquier rol
             $roles = Role::all();
             $dependencias = Dependencia::where('activo', true)->get();
+            $programas = Programa::where('activo', true)->get();
         }
 
-        return view('users.create', compact('dependencias', 'roles'));
+        return view('users.create', compact('dependencias', 'roles', 'programas'));
     }
 
     public function store(Request $request)
@@ -90,9 +93,22 @@ class UserController extends Controller
                     ->with('error', 'Solo puedes crear usuarios para tu propia dependencia.')
                     ->withInput();
             }
+
+            // Verificar que el programa pertenezca a su dependencia
+            if ($request->filled('programa_id')) {
+                $programa = Programa::where('id', $request->programa_id)
+                    ->where('dependencia_id', auth()->user()->dependencia_id)
+                    ->first();
+
+                if (!$programa) {
+                    return redirect()->back()
+                        ->with('error', 'El programa seleccionado no pertenece a tu dependencia.')
+                        ->withInput();
+                }
+            }
         }
 
-        $user = User::create([
+        $userData = [
             'name' => $request->nombre,
             'nombre' => $request->nombre,
             'apellido_paterno' => $request->apellido_paterno,
@@ -100,13 +116,16 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'dependencia_id' => $request->dependencia_id,
+            'programa_id' => $request->programa_id, // Agregar programa_id
             'activo' => $request->has('activo'),
-        ]);
+        ];
 
+        $user = User::create($userData);
         $user->assignRole($request->rol);
 
         return redirect()->route('users.index')->with('success', 'Usuario creado exitosamente.');
     }
+
 
     public function edit(User $user)
     {
@@ -115,11 +134,15 @@ class UserController extends Controller
             abort(403, 'No autorizado para editar usuarios.');
         }
 
-        // Instancia_Normativa no puede editar usuarios
         $dependencias = Dependencia::where('activo', true)->get();
         $roles = Role::all();
 
-        return view('users.edit', compact('user', 'dependencias', 'roles'));
+        // Obtener solo los programas de la dependencia del usuario
+        $programas = Programa::where('dependencia_id', $user->dependencia_id)
+            ->where('activo', true)
+            ->get();
+
+        return view('users.edit', compact('user', 'dependencias', 'roles', 'programas'));
     }
 
     public function update(Request $request, User $user)
@@ -136,6 +159,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'dependencia_id' => 'required|exists:dependencias,id',
             'rol' => 'required|exists:roles,name',
+            'programa_id' => 'nullable|exists:programas,id',
         ]);
 
         $user->update([
@@ -145,6 +169,7 @@ class UserController extends Controller
             'apellido_materno' => $request->apellido_materno,
             'email' => $request->email,
             'dependencia_id' => $request->dependencia_id,
+            'programa_id' => $request->programa_id,
             'activo' => $request->has('activo'),
         ]);
 
@@ -153,9 +178,36 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'Usuario actualizado exitosamente.');
     }
 
+    public function updatePassword(Request $request, User $user)
+    {
+        // Verificar permisos
+        if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
+            abort(403, 'No autorizado para cambiar contraseñas de otros usuarios.');
+        }
+
+        $request->validate([
+            'new_password' => 'required|string|min:8|confirmed',
+            'new_password_confirmation' => 'required|string|min:8',
+        ]);
+
+        // Cambiar la contraseña
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        // Registrar en bitácora
+        $this->registrarBitacora(
+            'Cambio de contraseña forzado',
+            'Usuarios',
+            "El usuario " . auth()->user()->nombre . " cambió la contraseña del usuario {$user->nombre} ({$user->email})",
+            auth()->user()
+        );
+
+        return redirect()->route('users.edit', $user)
+            ->with('password_success', "Contraseña del usuario {$user->nombre} actualizada exitosamente.");
+    }
+
     public function destroy(User $user)
     {
-        // Verificar permisos - Solo SuperUsuario y Organo_Estatal_de_Control pueden eliminar
         if (!auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control'])) {
             abort(403, 'No autorizado para eliminar usuarios.');
         }

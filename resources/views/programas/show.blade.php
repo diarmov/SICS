@@ -45,7 +45,8 @@
                             <h5 class="text-tinto">Archivos</h5>
                             @if($programa->archivo_pdf)
                             <p>
-                                <strong>Programa PDF:</strong>
+                                <strong>Programa de trabajo en materia de
+                                    Contraloría Social (PDF):</strong>
                                 <a href="{{ asset('storage/' . $programa->archivo_pdf) }}" target="_blank"
                                     class="btn btn-outline-tinto btn-sm">
                                     Ver Programa

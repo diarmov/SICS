@@ -15,7 +15,9 @@
                             <i class="fas fa-clock"></i> Pendientes de Validación
                         </a>
                         @endif --}}
+                        @if(Auth::user()->hasRole(['SuperUsuario', 'Instancia_Normativa','Instancia_Ejecutora']))
                         <a href="{{ route('comites.create') }}" class="btn btn-tinto">Nuevo Comité</a>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -30,7 +32,6 @@
                                     <th>Municipio</th>
                                     <th>Localidad</th>
                                     <th>Elementos</th>
-                                    <th>Con INE</th>
                                     <th>Estado</th>
                                     <th>Validación</th> <!-- Nueva columna -->
                                     <th>Acciones</th>
@@ -49,11 +50,6 @@
                                     <td>{{ $comite->municipio->nombre ?? 'N/A' }}</td>
                                     <td>{{ $comite->localidad->nombre ?? 'N/A' }}</td>
                                     <td>{{ $comite->elementos->count() }}</td>
-                                    <td>
-                                        <span class="badge {{ $elementosConINE > 0 ? 'bg-success' : 'bg-warning' }}">
-                                            {{ $elementosConINE }}/{{ $comite->elementos->count() }}
-                                        </span>
-                                    </td>
                                     <td>
                                         <span class="badge {{ $comite->activo ? 'bg-success' : 'bg-secondary' }}">
                                             {{ $comite->activo ? 'Activo' : 'Inactivo' }}

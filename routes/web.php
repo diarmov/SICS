@@ -12,6 +12,7 @@ use App\Http\Controllers\UbicacionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ProgramController;
 
 // Rutas públicas
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -34,6 +35,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    // Cambio de contraseña desde edición (Solo SuperUsuario y Organo_Estatal_de_Control)
+    Route::put('/users/{user}/update-password', [UserController::class, 'updatePassword'])
+        ->name('users.update-password')
+        ->middleware('role:SuperUsuario|Organo_Estatal_de_Control');
+
+    // Cambio de contraseña para el usuario autenticado (todos los usuarios)
     Route::get('/cambiar-contraseña', [ChangePasswordController::class, 'showChangePasswordForm'])
         ->name('password.change.form');
     Route::post('/cambiar-contraseña', [ChangePasswordController::class, 'changePassword'])
@@ -132,4 +139,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/comites', [App\Http\Controllers\ReporteController::class, 'getComitesPorFiltro'])->name('comites');
         Route::get('/preview', [App\Http\Controllers\ReporteController::class, 'preview'])->name('preview');
     });
+
+    Route::get('/api/programas-por-dependencia/{dependenciaId}', [ProgramController::class, 'getByDependencia'])
+        ->name('api.programas.by_dependencia');
 });

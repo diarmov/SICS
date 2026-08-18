@@ -70,22 +70,8 @@ class ComiteVigilanciaController extends Controller
         // DEPURACIÓN COMPLETA
         Log::info('=== INICIANDO STORE COMITÉ ===');
         Log::info('POST data:', $request->except(['_token']));
-        Log::info('FILES keys:', array_keys($request->allFiles()));
 
-        // Verificar específicamente materiales
-        if ($request->hasFile('material_archivo')) {
-            Log::info('material_archivo existe, cantidad: ' . count($request->file('material_archivo')));
-            foreach ($request->file('material_archivo') as $idx => $file) {
-                Log::info("Archivo {$idx}: " . ($file ? $file->getClientOriginalName() : 'null'));
-            }
-        } else {
-            Log::warning('material_archivo NO existe en la request');
-        }
-
-        // Log::info('=== INICIANDO STORE COMITÉ ===');
-        // Log::info('Datos recibidos:', $request->all());
-
-        // Validaciones
+        // Validaciones - ELIMINAR validación de archivos INE
         $request->validate([
             'dependencia_id' => 'required|exists:dependencias,id',
             'programa_id' => 'required|exists:programas,id',
@@ -93,21 +79,18 @@ class ComiteVigilanciaController extends Controller
             'id_estado' => 'required|exists:estados,id_estado',
             'id_municipio' => 'required|exists:municipios,id_municipio',
             'id_localidad' => 'required|exists:localidades,id_localidad',
-            'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120', // 5MB para minuta
+            'archivo_minuta' => 'nullable|file|mimes:pdf|max:5120',
             'elementos' => 'required|array|min:1',
             'elementos.*.nombre_completo' => 'required|string|max:255',
             'elementos.*.tipo_elemento' => 'required|string|max:100',
-            'elementos.*.archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120', // 5MB
-            // Nueva validación para materiales de difusión
+            // ELIMINAR: 'elementos.*.archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'lista_asistencia' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120',
             'materiales' => 'nullable|array',
             'materiales.*.tipo' => 'required|string|max:100',
             'materiales.*.cantidad' => 'required|integer|min:1',
             'materiales.*.archivo' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
-            'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048', // 2MB cada foto
+            'fotografias.*' => 'nullable|image|mimes:jpg,jpeg|max:2048',
         ]);
-
-        Log::info('Validaciones pasadas correctamente');
 
         try {
             // Datos básicos del comité
@@ -266,8 +249,7 @@ class ComiteVigilanciaController extends Controller
             foreach ($request->elementos as $index => $elementoData) {
                 Log::info("Procesando elemento {$index}: ", [
                     'nombre' => $elementoData['nombre_completo'],
-                    'tipo' => $elementoData['tipo_elemento'],
-                    'tiene_archivo' => isset($elementoData['archivo_ine'])
+                    'tipo' => $elementoData['tipo_elemento']
                 ]);
 
                 $elemento = ElementoComite::create([
@@ -277,34 +259,6 @@ class ComiteVigilanciaController extends Controller
                 ]);
 
                 Log::info("Elemento creado ID: " . $elemento->id);
-
-                // Guardar archivo INE si se subió
-                if (isset($elementoData['archivo_ine']) && $elementoData['archivo_ine']) {
-                    try {
-                        $archivo = $elementoData['archivo_ine'];
-                        $extension = $archivo->getClientOriginalExtension();
-                        $nombreArchivo = 'ine_' . $comite->id . '_' . $elemento->id . '_' . time() . '.' . $extension;
-
-                        Log::info("Subiendo archivo INE: {$nombreArchivo}");
-
-                        // Crear directorio si no existe
-                        $directorioINE = 'ine_comites/' . $comite->id;
-                        if (!Storage::disk('public')->exists($directorioINE)) {
-                            Storage::disk('public')->makeDirectory($directorioINE);
-                        }
-
-                        // Guardar archivo
-                        $rutaINE = $archivo->storeAs('public/' . $directorioINE, $nombreArchivo);
-                        $rutaParaDB = str_replace('public/', '', $rutaINE);
-
-                        // Actualizar elemento con la ruta
-                        $elemento->update(['archivo_ine' => $rutaParaDB]);
-
-                        Log::info("INE guardado en: " . $rutaParaDB);
-                    } catch (\Exception $e) {
-                        Log::error("Error al guardar archivo INE: " . $e->getMessage());
-                    }
-                }
             }
 
             // Registrar en bitácora la creación con detalles de materiales
@@ -872,15 +826,24 @@ class ComiteVigilanciaController extends Controller
 
     public function addElemento(Request $request, ComiteVigilancia $comite)
     {
+        // Verificar permisos - Solo Instancia Normativa y Ejecutora pueden agregar elementos
+        if (!Auth::user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control', 'Instancia_Normativa', 'Instancia_Ejecutora'])) {
+            abort(403, 'No autorizado para agregar elementos al comité.');
+        }
+
+        // Verificar que el comité no esté validado
+        if ($comite->estaValidado()) {
+            return redirect()->back()->with('error', 'No se pueden agregar elementos a un comité validado.');
+        }
+
         Log::info('=== AGREGANDO ELEMENTO A COMITÉ ===');
         Log::info('Comité ID: ' . $comite->id);
         Log::info('Datos recibidos:', $request->all());
-        Log::info('Archivo INE: ' . ($request->hasFile('archivo_ine') ? 'Sí' : 'No'));
 
         $request->validate([
             'nombre_completo' => 'required|string|max:255',
             'tipo_elemento' => 'required|string|max:100',
-            'archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            // ELIMINAR: 'archivo_ine' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
         try {
@@ -891,43 +854,12 @@ class ComiteVigilanciaController extends Controller
             ]);
 
             Log::info('Elemento creado ID: ' . $elemento->id);
-
-            // Guardar archivo INE si se subió
-            if ($request->hasFile('archivo_ine')) {
-                try {
-                    $archivo = $request->file('archivo_ine');
-                    $extension = $archivo->getClientOriginalExtension();
-                    $nombreArchivo = 'ine_' . $comite->id . '_' . $elemento->id . '_' . time() . '.' . $extension;
-
-                    Log::info("Subiendo archivo: {$nombreArchivo}");
-
-                    // Crear directorio si no existe
-                    $directorio = 'ine_comites/' . $comite->id;
-                    if (!Storage::disk('public')->exists($directorio)) {
-                        Storage::disk('public')->makeDirectory($directorio);
-                    }
-
-                    // Guardar archivo
-                    $ruta = $archivo->storeAs('public/' . $directorio, $nombreArchivo);
-                    $rutaParaDB = str_replace('public/', '', $ruta);
-
-                    // Actualizar elemento con la ruta
-                    $elemento->update([
-                        'archivo_ine' => $rutaParaDB
-                    ]);
-
-                    Log::info("Archivo guardado en: " . $rutaParaDB);
-                } catch (\Exception $e) {
-                    Log::error("Error al guardar archivo INE: " . $e->getMessage());
-                }
-            }
+            // ELIMINAR: lógica de archivo INE
 
             Log::info('=== ELEMENTO AGREGADO CON ÉXITO ===');
             return redirect()->route('comites.show', $comite)->with('success', 'Elemento agregado al comité.');
         } catch (\Exception $e) {
             Log::error('Error al agregar elemento: ' . $e->getMessage());
-            Log::error('Trace: ' . $e->getTraceAsString());
-
             return back()->withInput()->withErrors([
                 'error' => 'Error al agregar el elemento: ' . $e->getMessage()
             ]);

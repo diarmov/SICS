@@ -12,8 +12,7 @@ class ElementoComite extends Model
     protected $fillable = [
         'comite_vigilancia_id',
         'nombre_completo',
-        'tipo_elemento',
-        'archivo_ine'
+        'tipo_elemento'
     ];
 
     public function comiteVigilancia()

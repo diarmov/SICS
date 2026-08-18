@@ -134,8 +134,8 @@
                             </div>
                         </div>
 
-                        <!-- SECCIÓN MATERIAL DE DIFUSIÓN -->
-                        <h5 class="mt-4 text-tinto">Material de Difusión</h5>
+                        <!-- SECCIÓN MEDIO DE DIFUSIÓN -->
+                        <h5 class="mt-4 text-tinto">Medio de Difusión</h5>
                         <p class="text-muted small mb-3">Registre los materiales entregados o difundidos durante la
                             reunión</p>
 
@@ -143,7 +143,7 @@
                             <div class="material-row card mb-3 p-3" data-index="0">
                                 <div class="row align-items-end">
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Tipo de Material</label>
+                                        <label class="form-label fw-bold">Catálogo de difusión</label>
                                         <select class="form-select" name="nuevos_materiales[0][tipo]">
                                             <option value="">Seleccionar tipo</option>
                                             <option value="tríptico">Tríptico</option>
@@ -211,23 +211,21 @@
                         <!-- Vista previa para archivos múltiples -->
                         <div id="preview-container" class="mt-3"></div>
 
-                        <h5 class="mt-4 text-tinto">Elementos del Comité</h5>
+                        <h5 class="mt-4 text-tinto">Integrantes del Comité</h5>
 
                         <div id="elementos-container">
                             <div class="elemento-row row mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-5">
+                                    <label>Nombre</label>
                                     <input type="text" class="form-control" name="elementos[0][nombre_completo]"
                                         placeholder="Nombre completo" required>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-5">
+                                    <label>Cargo</label>
                                     <input type="text" class="form-control" name="elementos[0][tipo_elemento]"
                                         placeholder="Tipo (Presidente, Vocal, etc.)" required>
                                 </div>
-                                <div class="col-md-3">
-                                    <input type="file" class="form-control" name="elementos[0][archivo_ine]"
-                                        accept=".pdf,.jpg,.jpeg,.png">
-                                    <small class="text-muted">INE (PDF, JPG o PNG, máx. 2MB)</small>
-                                </div>
+                                {{-- ELIMINAR: campo de archivo INE --}}
                                 <div class="col-md-2">
                                     <button type="button"
                                         class="btn btn-danger btn-sm remove-elemento">Eliminar</button>
@@ -236,7 +234,7 @@
                         </div>
 
                         <button type="button" id="add-elemento" class="btn btn-secondary btn-sm mb-3">Agregar
-                            Elemento</button>
+                            Integrante</button>
 
                         <div class="mt-4">
                             <button type="submit" class="btn btn-tinto">Guardar Comité</button>

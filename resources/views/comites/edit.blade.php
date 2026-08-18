@@ -472,9 +472,10 @@
                     </form>
                     <!-- FIN FORMULARIO PRINCIPAL -->
 
-                    <!-- SECCIÓN DE ELEMENTOS (FUERA DEL FORMULARIO PRINCIPAL) -->
+                    <!-- SECCIÓN DE INTEGRANTES (FUERA DEL FORMULARIO PRINCIPAL) -->
+
                     <hr class="my-4">
-                    <h5 class="text-tinto">Elementos del Comité</h5>
+                    <h5 class="text-tinto">Integrantes del Comité</h5>
 
                     @if($comite->elementos->count() > 0)
                     <div class="table-responsive mt-3">
@@ -482,8 +483,7 @@
                             <thead>
                                 <tr>
                                     <th>Nombre Completo</th>
-                                    <th>Tipo</th>
-                                    <th>INE</th>
+                                    <th>Cargo</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -492,35 +492,6 @@
                                 <tr>
                                     <td>{{ $elemento->nombre_completo }}</td>
                                     <td><span class="badge bg-info">{{ $elemento->tipo_elemento }}</span></td>
-                                    <td>
-                                        @if($elemento->archivo_ine)
-                                        @php
-                                        $extension = pathinfo($elemento->archivo_ine, PATHINFO_EXTENSION);
-                                        $isPdf = strtolower($extension) === 'pdf';
-                                        $isImage = in_array(strtolower($extension), ['jpg', 'jpeg', 'png']);
-                                        @endphp
-
-                                        @if($isPdf)
-                                        <a href="{{ Storage::url($elemento->archivo_ine) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-danger" title="Ver INE (PDF)">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </a>
-                                        @elseif($isImage)
-                                        <a href="{{ Storage::url($elemento->archivo_ine) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-info" title="Ver INE (Imagen)">
-                                            <i class="fas fa-image"></i>
-                                        </a>
-                                        @endif
-                                        <a href="{{ Storage::url($elemento->archivo_ine) }}" download
-                                            class="btn btn-sm btn-outline-success" title="Descargar">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                        @else
-                                        <span class="text-muted">
-                                            <i class="fas fa-times-circle"></i> Sin INE
-                                        </span>
-                                        @endif
-                                    </td>
                                     <td>
                                         <form action="{{ route('comites.remove-elemento', $elemento) }}" method="POST"
                                             class="d-inline">
@@ -539,36 +510,31 @@
                     </div>
                     @else
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No hay elementos en este comité.
+                        <i class="fas fa-info-circle me-2"></i>No hay integrantes en este comité.
                     </div>
                     @endif
 
-                    <!-- FORMULARIO PARA AGREGAR ELEMENTOS (SEPARADO) -->
+                    @if(auth()->user()->hasRole(['Instancia_Normativa', 'Instancia_Ejecutora']))
+                    <!-- FORMULARIO PARA AGREGAR INTEGRANTES (SEPARADO) -->
                     <div class="card mt-4 border-success">
                         <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Elemento</h6>
+                            <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Integrante</h6>
                         </div>
                         <div class="card-body">
-                            <form action="{{ route('comites.add-elemento', $comite) }}" method="POST"
-                                enctype="multipart/form-data" id="form-agregar-elemento">
+                            <form action="{{ route('comites.add-elemento', $comite) }}" method="POST">
                                 @csrf
                                 <div class="row align-items-end">
-                                    <div class="col-md-4">
+                                    <div class="col-md-5">
                                         <label class="form-label fw-bold">Nombre Completo</label>
                                         <input type="text" class="form-control" name="nombre_completo"
                                             placeholder="Nombre completo" required>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-5">
                                         <label class="form-label fw-bold">Tipo</label>
                                         <input type="text" class="form-control" name="tipo_elemento"
                                             placeholder="Presidente, Vocal, etc." required>
                                     </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label fw-bold">INE (opcional)</label>
-                                        <input type="file" class="form-control" name="archivo_ine"
-                                            accept=".pdf,.jpg,.jpeg,.png">
-                                        <small class="text-muted">PDF, JPG, PNG (máx. 2MB)</small>
-                                    </div>
+                                    {{-- ELIMINAR: campo de archivo INE --}}
                                     <div class="col-md-2">
                                         <button type="submit" class="btn btn-success w-100">
                                             <i class="fas fa-plus"></i> Agregar
@@ -578,7 +544,7 @@
                             </form>
                         </div>
                     </div>
-
+                    @endif
                 </div>
             </div>
         </div>

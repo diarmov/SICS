@@ -19,6 +19,7 @@ class User extends Authenticatable
         'email',
         'password',
         'dependencia_id',
+        'programa_id',
         'activo'
     ];
 
@@ -41,6 +42,10 @@ class User extends Authenticatable
         return $this->hasMany(Bitacora::class);
     }
 
+    public function programa()
+    {
+        return $this->belongsTo(Programa::class);
+    }
     // Método para obtener el nombre completo
     public function getNombreCompletoAttribute()
     {

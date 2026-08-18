@@ -165,17 +165,6 @@
                                     </span>
                                     @endif
                                 </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    INEs de Elementos
-                                    @php
-                                    $elementosConINE = $comite->elementos->where('archivo_ine', '!=', null)->count();
-                                    $totalElementos = $comite->elementos->count();
-                                    @endphp
-                                    <span
-                                        class="badge {{ $elementosConINE == $totalElementos ? 'bg-success' : ($elementosConINE > 0 ? 'bg-warning' : 'bg-danger') }} rounded-pill">
-                                        {{ $elementosConINE }}/{{ $totalElementos }}
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </div>

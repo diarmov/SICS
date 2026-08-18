@@ -183,7 +183,8 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="archivo_pdf" class="form-label">Archivo PDF del Programa</label>
+                                    <label for="archivo_pdf" class="form-label">Programa de trabajo en materia de
+                                        Contraloría Social (PDF)</label>
                                     <input type="file" class="form-control @error('archivo_pdf') is-invalid @enderror"
                                         id="archivo_pdf" name="archivo_pdf" accept=".pdf"
                                         onchange="validarPDF(this, 'archivo_pdf_error')">

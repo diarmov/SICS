@@ -27,6 +27,7 @@
                         <th>Nombre</th>
                         <th>Email</th>
                         <th>Dependencia</th>
+                        <th>Programa</th> {{-- Agregar columna --}}
                         <th>Rol</th>
                         <th>Estado</th>
                         @if(auth()->user()->hasRole(['SuperUsuario', 'Organo_Estatal_de_Control']))
@@ -40,6 +41,7 @@
                         <td>{{ $user->nombre_completo }}</td>
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->dependencia->siglas }}</td>
+                        <td>{{ $user->programa ? $user->programa->nombre : 'Sin programa' }}</td>
                         <td>{{ $user->getRoleNames()->first() }}</td>
                         <td>
                             <span class="badge {{ $user->activo ? 'bg-success' : 'bg-secondary' }}">
